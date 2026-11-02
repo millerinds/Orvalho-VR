@@ -250,7 +250,7 @@ async function virarPara(page, x, z) {
 
 (async () => {
   const srv = await servidor(), url = process.env.ORVALHO_URL || `http://127.0.0.1:${srv.address().port}/index.html`; // ORVALHO_URL: testar o site publicado
-  const browser = await chromium.launch({ executablePath: chromiumPath(), headless: HEADLESS, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+  const browser = await require('./navegador').abrir(chromium, HEADLESS);   // GPU=1 usa a placa de vídeo (testes/navegador.js)
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const erros = []; page.on('pageerror', e => erros.push(e.message)); page.on('console', m => { if (m.type() === 'error') erros.push(m.text()); });
   const rel = { data: new Date().toISOString(), corpo: CORPO, falhas: [] };

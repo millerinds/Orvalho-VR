@@ -5,7 +5,7 @@ const RAIZ=path.resolve(__dirname,'..');
 function servidor(){return new Promise(res=>{const s=http.createServer((req,rsp)=>{const f=path.join(RAIZ,decodeURIComponent(req.url.split('?')[0]).replace(/^\/$/,'/index.html'));if(!f.startsWith(RAIZ)||!fs.existsSync(f)){rsp.writeHead(404);return rsp.end();}const ext=path.extname(f),tipos={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.jpeg':'image/jpeg'};rsp.writeHead(200,{'Content-Type':tipos[ext]||'application/octet-stream'});fs.createReadStream(f).pipe(rsp);}).listen(0,'127.0.0.1',()=>res(s));});}
 function chromiumPath(){if(process.env.CHROMIUM)return process.env.CHROMIUM;const base=path.join(process.env.HOME||'','Library/Caches/ms-playwright');if(fs.existsSync(base)){for(const d of fs.readdirSync(base).filter(x=>/^chromium-\d+$/.test(x)).sort().reverse()){for(const sub of ['chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing','chrome-mac/Chromium.app/Contents/MacOS/Chromium']){const p=path.join(base,d,sub);if(fs.existsSync(p))return p;}}}}
 (async()=>{
-  const srv=await servidor(),url=process.env.ORVALHO_URL||`http://127.0.0.1:${srv.address().port}/`,browser=await chromium.launch({headless:true,executablePath:chromiumPath()});
+  const srv=await servidor(),url=process.env.ORVALHO_URL||`http://127.0.0.1:${srv.address().port}/`,browser=await require('./navegador').abrir(chromium,true);
   const falhas=[],resultados={data:new Date().toISOString(),corpos:{}};
   function ok(c,m){console.log((c?'  ✔ ':'  ✘ ')+m);if(!c)falhas.push(m);}
   for(const corpo of ['jujuba','gota','esguio']){

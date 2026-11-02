@@ -39,7 +39,7 @@ function chromiumPath() {
     if (!condicao) falhas.push(mensagem);
   };
   try {
-    browser = await chromium.launch({ executablePath: chromiumPath(), headless: !process.argv.includes('--janela'), args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+    browser = await require('./navegador').abrir(chromium, !process.argv.includes('--janela'));   // GPU=1 usa a placa de vídeo (testes/navegador.js)
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     page.on('pageerror', erro => erros.push(erro.message));
     page.on('console', mensagem => { if (mensagem.type() === 'error') erros.push(mensagem.text()); });
