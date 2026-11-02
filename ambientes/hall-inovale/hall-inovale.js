@@ -313,6 +313,44 @@
       { p: [39.9, 4.27, 19.83], tam: [3.6, 0.02, 0.03], cor: '#ff9a5c' },
       { p: [38.6, 6.7, 14.66], tam: [0.36, 0.12, 0.02], cor: '#ff3b30', pulso: 3.0 }
     ],
+    /* zonas de visibilidade do VR (src/mundo/sala.js → visibilidadeVR; ?vr-zonas=0 desliga). Térreo e 1º andar são um ambiente só.
+       "ve": o que se vê de cada zona. Na dúvida (vidro), a zona fica visível: só some o que está atrás de parede opaca.
+       A primeira zona cujo retângulo contém o ponto vence (a ordem importa no 1º andar). */
+    zonasVR: {
+      zonas: [
+        /* escada aberta junto ao palco (x 42,6–43,85; z 3,4–12,45), nos dois pavimentos: de lá se vê o térreo e a frente do
+           Administrativo ao mesmo tempo, então tudo aparece e não há limite de distância (sem ela, chegar ao 1º andar fazia
+           surgir os móveis do Administrativo e das salas a 2–4 m) */
+        { id: 'escada', piso: null, todas: true, r: [[42.4, 3.0, 44.1, 12.45]] },
+        /* térreo: o café (Cafeteria Pin e as mesas sob a laje do ACIOC, x < 14) é uma subzona só para quem está no 1º andar:
+           no grupo "terreo", café e resto do salão se veem sempre e não se cortam pela distância */
+        { id: 'cafe', piso: 0, grupo: 'terreo', r: [[-5, -5, 14, 25]] },
+        { id: 'hall', piso: 0, grupo: 'terreo', r: [[-5, -5, 60, 25]] },                  // resto do térreo: vão de 8 m, tudo aberto
+        { id: 'acioc', piso: 1, r: [[0, 11.7, 10.5, 20]] },
+        { id: 'salas', piso: 1, r: [[32, 14.6, 41.8, 20]] },                              // servidor/reuniões e podcast
+        { id: 'administrativo', piso: 1, r: [[41.8, 14.6, 55, 20]] },
+        { id: 'incubadora', piso: 1, r: [[46.5, 0, 55, 14.6]] },                         // incubadora, salas de incubação e salinha
+        { id: 'incubadora-corredor', piso: 1, r: [[44, 0, 46.5, 14.6]] },
+        { id: 'corredor', piso: 1, r: [[0, 11.7, 44, 14.6], [10.5, 14.6, 32, 20]] }      // mezanino, núcleo (banheiros, escadas, elevador)
+      ],
+      /* "ve" calculado por geometria em 02/11 (testes/visibilidade-zonas-vr.js): de posições caminháveis de cada zona, em duas
+         alturas de cabeça, renders das 6 direções com cada bloco de móveis, pessoa e marcador numa cor; estrutura opaca oclui,
+         vidro não, portas contadas como abertas. Zona com ≥ 30% dos itens vistos entra inteira; abaixo disso, entram só os blocos
+         vistos (retângulos de ±0,75 m em volta do centro de cada bloco; visibilidade parcial em sala.js). Do Administrativo não se
+         veem a ACIOC, o café (Pin) nem as salas; das salas não se vê o café. Refazer a análise ao mudar a planta:
+         GPU=1 node testes/visibilidade-zonas-vr.js (imprime a tabela sugerida). */
+      ve: {
+        escada: [],                                                                       // "todas": vê tudo
+        cafe: ['acioc', { zona: 'administrativo', em: [[46.65, 14.05, 48.15, 15.55]] }, 'corredor', 'hall', { zona: 'incubadora', em: [[47.45, 2.75, 48.95, 4.25], [47.35, 2.45, 48.85, 3.95], [46.15, 8.55, 47.65, 10.05], [46.85, 12.95, 48.35, 14.45], [46.85, 13.25, 48.35, 14.75]] }, { zona: 'incubadora-corredor', em: [[45.05, 10.35, 46.55, 11.85]] }, { zona: 'salas', em: [[40.95, 15.05, 42.45, 16.55]] }],
+        hall: ['acioc', { zona: 'administrativo', em: [[46.65, 14.05, 48.15, 15.55]] }, 'cafe', 'corredor', { zona: 'incubadora', em: [[46.15, 8.55, 47.65, 10.05], [47.45, 2.75, 48.95, 4.25], [47.35, 2.45, 48.85, 3.95], [46.85, 12.95, 48.35, 14.45], [46.85, 13.55, 48.35, 15.05], [46.85, 13.65, 48.35, 15.15], [46.85, 13.25, 48.35, 14.75]] }, 'incubadora-corredor', { zona: 'salas', em: [[40.95, 15.05, 42.45, 16.55]] }],
+        corredor: ['acioc', 'administrativo', { zona: 'cafe', em: [[4.15, 4.65, 5.65, 6.15], [4.15, 4.75, 5.65, 6.25], [4.25, 4.55, 5.75, 6.05], [3.95, 8.55, 5.45, 10.05], [8.55, 0.95, 10.05, 2.45], [8.55, 1.45, 10.05, 2.95], [8.25, 1.45, 9.75, 2.95], [8.75, 1.45, 10.25, 2.95], [8.35, 0.95, 9.85, 2.45], [9.75, 4.65, 11.25, 6.15]] }, 'hall', 'incubadora', 'incubadora-corredor', 'salas'],
+        acioc: ['cafe', 'corredor', 'hall', { zona: 'incubadora', em: [[47.45, 2.75, 48.95, 4.25], [53.55, 10.95, 55.05, 12.45], [53.35, 10.95, 54.85, 12.45], [53.85, 10.95, 55.35, 12.45], [46.85, 13.55, 48.35, 15.05], [50.75, 3.35, 52.25, 4.85], [47.75, 2.95, 49.25, 4.45], [48.65, 4.65, 50.15, 6.15], [48.75, 7.85, 50.25, 9.35], [46.15, 8.55, 47.65, 10.05]] }, { zona: 'incubadora-corredor', em: [[43.65, 13.35, 45.15, 14.85]] }, { zona: 'salas', em: [[33.55, 14.05, 35.05, 15.55]] }],
+        salas: [{ zona: 'acioc', em: [[7.95, 12.15, 9.45, 13.65], [8.15, 12.15, 9.65, 13.65]] }, { zona: 'administrativo', em: [[41.35, 16.85, 42.85, 18.35]] }, { zona: 'corredor', em: [[42.75, 13.65, 44.25, 15.15], [41.75, 13.15, 43.25, 14.65]] }, { zona: 'hall', em: [[41.55, 5.55, 43.05, 7.05], [21.65, 0.95, 23.15, 2.45], [41.45, 5.55, 42.95, 7.05]] }, 'incubadora', 'incubadora-corredor'],
+        administrativo: [{ zona: 'corredor', em: [[42.75, 13.65, 44.25, 15.15], [41.75, 13.15, 43.25, 14.65]] }, { zona: 'hall', em: [[42.55, 0.05, 44.05, 1.55], [42.55, -0.05, 44.05, 1.45], [41.55, 5.55, 43.05, 7.05], [34.65, -0.15, 36.15, 1.35], [34.65, -0.25, 36.15, 1.25], [21.65, 0.95, 23.15, 2.45], [37.85, 1.45, 39.35, 2.95], [33.55, 4.35, 35.05, 5.85], [29.15, -0.15, 30.65, 1.35], [29.15, -0.25, 30.65, 1.25], [29.55, 4.35, 31.05, 5.85]] }, 'incubadora', 'incubadora-corredor'],
+        'incubadora-corredor': ['acioc', 'administrativo', 'cafe', 'corredor', 'hall', 'incubadora', 'salas'],
+        incubadora: ['acioc', { zona: 'administrativo', em: [[46.65, 14.05, 48.15, 15.55], [42.85, 18.95, 44.35, 20.45], [42.15, 17.45, 43.65, 18.95], [42.15, 18.95, 43.65, 20.45], [42.05, 18.95, 43.55, 20.45], [41.35, 16.85, 42.85, 18.35], [42.25, 18.85, 43.75, 20.35], [42.05, 18.85, 43.55, 20.35], [41.35, 16.65, 42.85, 18.15], [46.65, 17.15, 48.15, 18.65], [41.95, 18.85, 43.45, 20.35]] }, 'cafe', 'corredor', 'hall', 'incubadora-corredor', 'salas']
+      }
+    },
     /* portas que abrem ao chegar perto: a = dobradiça, b = ponta da folha; abrem para dentro de cada sala */
     portasAnimadas: [
       { id: 'acioc', a: [10.5, 12.2], b: [10.5, 13.2], y: 4.2, altura: 2.3 },                                          // ACIOC Hub (vidro, E12)

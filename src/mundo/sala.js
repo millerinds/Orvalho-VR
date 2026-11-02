@@ -12,6 +12,34 @@
     var animados = [];
     var lin = G.lin;
 
+    /* ---------- zonas de visibilidade do VR (def.zonasVR; só o Hall tem): cada zona é um conjunto de retângulos num pavimento
+       (piso 0 = térreo, 1 = 1º andar) e diz quais outras zonas se veem dela. Móveis, portas, marcadores e pessoas guardam a
+       zona onde estão; em VR, os das zonas que não se veem da zona da cabeça ficam ocultos (visibilidadeVR). Piso, paredes e
+       vidros nunca somem. Fora de qualquer zona, ou numa zona "todas" (a escada, que liga os pavimentos), tudo aparece e o limite
+       de distância não vale. piso: null = vale nos dois pavimentos. grupo: zonas do mesmo grupo (ex.: o café e o resto do
+       térreo) se veem sempre e contam como "a zona da cabeça" para a distância máxima (um ambiente aberto não corta a si mesmo).
+       Visibilidade parcial: em ve[zona], { zona: 'salas', em: [[x0, z0, x1, z1], …] } mostra só os blocos de móveis daquela zona
+       cujo centro cai num dos retângulos (os poucos que a geometria diz que se veem), em vez da zona inteira; o mesmo para pessoas e
+       marcadores (também entram na análise). As portas de uma zona parcial continuam aparecendo (a análise as trata como abertas). ---------- */
+    var ZV = def.zonasVR || null, VE = {}, TODAS = {}, GRUPO = {};
+    if (ZV) ZV.zonas.forEach(function(zn){ VE[zn.id] = {}; VE[zn.id][zn.id] = true;
+      (ZV.ve[zn.id] || []).forEach(function(o){ if (typeof o === 'string') VE[zn.id][o] = true; else VE[zn.id][o.zona] = o.em; });
+      if (zn.todas) TODAS[zn.id] = true; GRUPO[zn.id] = zn.grupo || zn.id; });
+    /* a zona "zona" é visível de ve (tabela da zona da cabeça) no ponto (x, z)? true = inteira; lista = só dentro dos retângulos */
+    function veEm(ve, zona, x, z){
+      var v = ve[zona]; if (v === true) return true; if (!v) return false;
+      for (var i = 0; i < v.length; i++) { var r = v[i]; if (x >= r[0] && x <= r[2] && z >= r[1] && z <= r[3]) return true; }
+      return false;
+    }
+    if (ZV) ZV.zonas.forEach(function(a){ ZV.zonas.forEach(function(b){ if (GRUPO[a.id] === GRUPO[b.id]) VE[a.id][b.id] = true; }); });
+    function zonaEm(x, z, yPiso){
+      if (!ZV) return null;
+      var andar = yPiso > 3 ? 1 : 0;
+      for (var i = 0; i < ZV.zonas.length; i++) { var zn = ZV.zonas[i]; if (zn.piso != null && zn.piso !== andar) continue;
+        for (var j = 0; j < zn.r.length; j++) { var r = zn.r[j]; if (x >= r[0] && x <= r[2] && z >= r[1] && z <= r[3]) return zn.id; } }
+      return null;
+    }
+
     function guarda(o){ if (o.isMaterial) lixo.mat.push(o); else if (o.isTexture) lixo.tex.push(o); else lixo.geo.push(o); return o; }
     function std(hex, o){ var m = new THREE.MeshStandardMaterial({ color: lin(hex), roughness: 0.62, metalness: 0 }); if (o) m.setValues(o); return guarda(m); }
     /* peça avulsa de gelatina (para molduras e detalhes que não se repetem) */
@@ -444,21 +472,27 @@
       if (pd.arte) folha = new THREE.Mesh(guarda(new THREE.BoxGeometry(L2 - 0.03, hp - 0.02, 0.035)), std('#ffffff', { map: artePor(pd.arte), roughness: 0.5 }));
       else folha = new THREE.Mesh(guarda(new THREE.BoxGeometry(L2 - 0.03, hp - 0.02, 0.012)), guarda(new THREE.MeshPhysicalMaterial({ color: lin('#e8f7ff'), transparent: true, opacity: 0.22, roughness: 0.05, depthWrite: false })));
       folha.position.set(L2 / 2, hp / 2, 0); folha.renderOrder = 2; piv.add(folha);
-      if (!pd.arte) { // folha de vidro: caixilho de alumínio em volta e duas dobradiças, filhos do mesmo pivô
-        var cxm = caixilhoMat || (caixilhoMat = std('#dfe5ea', { roughness: 0.35, metalness: 0.35 }));
-        [[L2 - 0.03, 0.045, (hp - 0.02) / 2 + 0.0, 0], [L2 - 0.03, 0.045, 0.0225, 0]].forEach(function(b, i){ var bm = new THREE.Mesh(guarda(new THREE.BoxGeometry(b[0], b[1], 0.03)), cxm); bm.position.set(L2 / 2, i ? 0.0225 : hp - 0.0425, 0); piv.add(bm); });
-        [0.03, L2 - 0.03].forEach(function(xx){ var bm = new THREE.Mesh(guarda(new THREE.BoxGeometry(0.04, hp - 0.02, 0.03)), cxm); bm.position.set(xx, hp / 2, 0); piv.add(bm); });
-        [0.35, hp - 0.35].forEach(function(yy){ var dm = new THREE.Mesh(guarda(new THREE.CylinderGeometry(0.012, 0.012, 0.09, 8)), cxm); dm.position.set(0.01, yy, 0); piv.add(dm); });
+      /* caixilho, dobradiças e puxador usam o mesmo alumínio: viram UMA malha filha do pivô (antes eram até 7 malhas por porta,
+         7 draw calls por olho; agora 1). A folha (vidro ou arte) continua separada, porque o material é outro. */
+      var cxm = caixilhoMat || (caixilhoMat = std('#dfe5ea', { roughness: 0.35, metalness: 0.35 })), pecas = [];
+      function peca(geo, x, y){ geo.translate(x, y, 0); pecas.push(geo); }
+      if (!pd.arte) { // folha de vidro: caixilho de alumínio em volta e duas dobradiças
+        [hp - 0.0425, 0.0225].forEach(function(yy){ peca(new THREE.BoxGeometry(L2 - 0.03, 0.045, 0.03), L2 / 2, yy); });
+        [0.03, L2 - 0.03].forEach(function(xx){ peca(new THREE.BoxGeometry(0.04, hp - 0.02, 0.03), xx, hp / 2); });
+        [0.35, hp - 0.35].forEach(function(yy){ peca(new THREE.CylinderGeometry(0.012, 0.012, 0.09, 8), 0.01, yy); });
       }
-      var pux = new THREE.Mesh(guarda(new THREE.BoxGeometry(0.03, 0.9, 0.09)), caixilhoMat || (caixilhoMat = std('#dfe5ea', { roughness: 0.35, metalness: 0.35 })));
-      pux.position.set(L2 - 0.12, 1.05, 0); piv.add(pux);
+      peca(new THREE.BoxGeometry(0.03, 0.9, 0.09), L2 - 0.12, 1.05);   // puxador
+      var ferragem = new THREE.Mesh(guarda(F.mesclar(pecas)), cxm); ferragem.name = 'porta-ferragem'; piv.add(ferragem);
       grupo.add(piv);
       var sentido = pd.abre === 'direita' ? -1 : 1, oa = pd.a, open = { x: pd.a[0] + (-dz / L2) * sentido * L2, z: pd.a[1] + (dx / L2) * sentido * L2 };
       /* a colisão acompanha a folha: fechada, o vão é sólido; aberta, a folha encostada é que colide */
       col.nivel(NIV ? (y0 > 3 ? [3, 99] : [-1, 2]) : null);
       var segAberta = col.segmento(oa[0], oa[1], open.x, open.z), segFechada = col.segmento(pd.a[0], pd.a[1], pd.b[0], pd.b[1]);
       col.nivel(null); segAberta.off = true;
-      portasA.push({ id: pd.id, piv: piv, base: piv.rotation.y, sentido: sentido, ang: 0, cx: (pd.a[0] + pd.b[0]) / 2, cz: (pd.a[1] + pd.b[1]) / 2, y: y0, segAberta: segAberta, segFechada: segFechada });
+      /* zonas dos dois lados da porta: ela aparece se qualquer uma for visível */
+      var pmx = (pd.a[0] + pd.b[0]) / 2, pmz = (pd.a[1] + pd.b[1]) / 2, pnx = -dz / L2 * 0.6, pnz = dx / L2 * 0.6, zonasPorta = [];
+      [zonaEm(pmx + pnx, pmz + pnz, y0), zonaEm(pmx - pnx, pmz - pnz, y0)].forEach(function(z){ if (z && zonasPorta.indexOf(z) < 0) zonasPorta.push(z); });
+      portasA.push({ id: pd.id, piv: piv, base: piv.rotation.y, sentido: sentido, ang: 0, cx: pmx, cz: pmz, y: y0, segAberta: segAberta, segFechada: segFechada, zonas: zonasPorta });
     });
     if (portasA.length) animados.push(function(t, cam, jog){
       if (!jog) return;
@@ -492,8 +526,35 @@
     /* ---------- móveis: um InstancedMesh por peça de cada tipo ---------- */
     var porTipo = {};
     (def.moveis || []).forEach(function(it){ (porTipo[it.tipo] = porTipo[it.tipo] || []).push(it); });
-    var sombras = [], assentos = [], tmpM = new THREE.Matrix4();
+    var sombras = [], assentos = [], tmpM = new THREE.Matrix4(), celulasVR = [];
     function matrizItem(it){ return MV.M(it.x, it.y || 0, it.z, 0, it.rot || 0, 0); }
+    /* lado da célula de recorte dos móveis (m); O.config.celulaMoveis troca o valor para medições */
+    var CELULA = (O.config && O.config.celulaMoveis) || 8;
+    /* a célula também respeita a zona de visibilidade do VR: cada bloco pertence a uma zona só */
+    function celulas(itens){
+      var mapa = {};
+      itens.forEach(function(it){
+        var zn = zonaEm(it.x, it.z, it.y || 0), k = zn + '|' + Math.floor(it.x / CELULA) + ',' + Math.floor(it.z / CELULA) + ',' + ((it.y || 0) > 3 ? 1 : 0);
+        if (!mapa[k]) { mapa[k] = []; mapa[k].zona = zn; }
+        mapa[k].push(it);
+      });
+      return Object.keys(mapa).map(function(k){ return mapa[k]; });
+    }
+    function involucro(geo){
+      var g = new THREE.BufferGeometry();
+      g.setIndex(geo.index);
+      Object.keys(geo.attributes).forEach(function(k){ g.setAttribute(k, geo.attributes[k]); });
+      geo.groups.forEach(function(gr){ g.addGroup(gr.start, gr.count, gr.materialIndex); });
+      return g;
+    }
+    function esferaDasInstancias(base, mesh, folga){
+      var cx = new THREE.Box3(), m = new THREE.Matrix4(), c = new THREE.Vector3(), r;
+      for (var k = 0; k < mesh.count; k++) {
+        mesh.getMatrixAt(k, m); c.copy(base.center).applyMatrix4(m); r = base.radius * m.getMaxScaleOnAxis() + folga;
+        cx.expandByPoint(c.clone().addScalar(-r)); cx.expandByPoint(c.clone().addScalar(r));
+      }
+      return cx.getBoundingSphere(new THREE.Sphere());
+    }
     Object.keys(porTipo).forEach(function(tipo){
       var TP = MV.TIPOS[tipo]; if (!TP) { console.warn('[Orvalho] tipo de móvel desconhecido:', tipo); return; }
       var itens = porTipo[tipo];
@@ -507,7 +568,7 @@
         guarda(pt.geo);
       });
       Object.keys(grupos).forEach(function(chave){
-        var gr = grupos[chave], geo = guarda(F.mesclar(gr.geos)), n = itens.length, mesh, mat, om = null;
+        var gr = grupos[chave], geo = guarda(F.mesclar(gr.geos)), mat;
         var plano = MV.BRILHO[gr.pal] || (MV.TEXTURAS && MV.TEXTURAS[gr.pal]);
         if (plano) { // peça acesa ou impressa (tela, LED, logotipo, painel): sem luz e sem contorno
           mat = MV.TEXTURAS && MV.TEXTURAS[gr.pal] ? guarda(new THREE.MeshBasicMaterial({ map: texDe(gr.pal), side: THREE.DoubleSide }))
@@ -518,16 +579,24 @@
           mat = guarda(G.jelly({ top: bb.max.y - (bb.max.y - bb.min.y) * 0.35, bot: bb.min.y }));
           if (gr.duplo) mat.side = THREE.DoubleSide; // folhas: planos finos vistos dos dois lados
         }
-        mesh = new THREE.InstancedMesh(geo, mat, n);
-        itens.forEach(function(it, k){ mesh.setMatrixAt(k, matrizItem(it)); });
-        mesh.instanceMatrix.needsUpdate = true;
-        /* r149 recorta InstancedMesh pela esfera da geometria (na origem), não das instâncias: desliga o recorte */
-        mesh.frustumCulled = false;
-        if (!plano) {
-          if (gr.esp) { om = guarda(G.outline(mesh, gr.esp)); mesh.children[0].frustumCulled = false; }
-          G.pintar(mat, pal(gr.pal), om);
-        }
-        mesh.name = tipo; grupo.add(mesh);
+        /* células: as instâncias do tipo são divididas em blocos de CELULA m por pavimento. Cada bloco é uma InstancedMesh com a
+           esfera das SUAS instâncias, para o recorte pela câmera funcionar (a r149 recortaria pela esfera da geometria na origem,
+           por isso antes o recorte ficava desligado e o mapa inteiro de móveis era desenhado em todo quadro). A geometria de cada
+           bloco é um invólucro que compartilha atributos e índice com `geo`: na GPU continua um buffer só. A imagem não muda. */
+        geo.computeBoundingSphere();
+        celulas(itens).forEach(function(cel){
+          var g = guarda(involucro(geo)), m1 = new THREE.InstancedMesh(g, mat, cel.length), om1 = null;
+          cel.forEach(function(it, k){ m1.setMatrixAt(k, matrizItem(it)); });
+          m1.instanceMatrix.needsUpdate = true;
+          g.boundingSphere = esferaDasInstancias(geo.boundingSphere, m1, 0.05);   // folga para o contorno empurrado pela normal
+          m1.frustumCulled = true;   // a r149 cria toda InstancedMesh com frustumCulled = false
+          if (!plano) {
+            if (gr.esp) { om1 = guarda(G.outline(m1, gr.esp)); m1.children[0].frustumCulled = true; }
+            G.pintar(mat, pal(gr.pal), om1);
+          }
+          celulasVR.push({ mesh: m1, casca: om1 ? m1.children[0] : null, esfera: g.boundingSphere, zona: cel.zona });
+          m1.name = tipo; grupo.add(m1);
+        });
       });
       itens.forEach(function(it){
         col.nivel(NIV && (it.nivel === 'superior' || (it.y || 0) > 3) ? [3, 99] : TERREO);
@@ -685,7 +754,7 @@
 
     /* ---------- pessoas do espaço: mesmo sistema de corpo/acessórios do avatar ---------- */
     var npcs = O.criarNPCs && def.npcs && def.npcs.length ? O.criarNPCs(def.npcs) : null;
-    if (npcs) { grupo.add(npcs.grupo); animados.push(function(t, cam){ npcs.atualizar(t, 0.016, cam); }); }
+    if (npcs) { grupo.add(npcs.grupo); npcs.grupo.children.forEach(function(n){ n.userData.npc = true; }); animados.push(function(t, cam){ npcs.atualizar(t, 0.016, cam); }); }
 
     /* ---------- 1º andar navegável: colisores próprios (guarda-corpo, vidros das salas) ---------- */
     if (NIV && NIV.superior) {
@@ -708,6 +777,22 @@
       var noHall = x >= 0 && x <= W && z >= 0 && z <= D;
       var noAnexo = ANX0.some(function(a){ return dentroR(a.r, x, z); });
       return noHall || noAnexo ? 0 : null;
+    }
+
+    /* paradas da escada navegável sob (x, z) (ou a até 0,6 m das pontas): pé, patamares e topo, no eixo da escada, cada uma com a
+       cota do piso. Usado pelo teleporte do VR, que gruda o alvo na parada mais próxima (locomocao.js). null = não é escada. */
+    function paradasEscada(x, z){
+      for (var i = 0; i < escadasNav.length; i++) {
+        var e = escadasNav[i], a = e.sobeZ ? z : x, b = e.sobeZ ? x : z;
+        if (b < e.b0 || b > e.b1 || a < e.amin - 0.6 || a > e.topo + 0.6) continue;
+        var bm = (e.b0 + e.b1) / 2, L = e.lances, out = [];
+        var ponto = function(aa, h, tipo){ return e.sobeZ ? { x: bm, z: aa, y: h, tipo: tipo } : { x: aa, z: bm, y: h, tipo: tipo }; };
+        out.push(ponto(L[0].a0 - 0.5, L[0].h0, 'pe'));
+        for (var k = 0; k < L.length - 1; k++) if (L[k + 1].a0 > L[k].a1 + 0.01) out.push(ponto((L[k].a1 + L[k + 1].a0) / 2, L[k].h1, 'patamar'));
+        out.push(ponto(e.topo + 0.5, e.alturaTopo, 'topo'));
+        return out;
+      }
+      return null;
     }
 
     /* agrupa as peças avulsas de gelatina (molduras, portas, longarinas...) numa malha por paleta e espessura de contorno */
@@ -741,6 +826,8 @@
       var mm = new THREE.Mesh(guarda(F.mesclar(geos)), ms[0].material); mm.renderOrder = ms[0].renderOrder; grupo.add(mm);
     });
 
+    var zonaCabeca = null;
+    var interativosAmb = (def.interativos || []);   // os mesmos objetos que a interação recebe (ela marca it._mesh)
     return {
       def: def, grupo: grupo, colisao: col,
       /* interativos da planta + um "Sentar" por assento */
@@ -762,6 +849,7 @@
         dentroDaSala: function(x, z){ return (x >= 0 && x <= W && z >= 0 && z <= D) || ANX0.some(function(a){ return dentroR(a.r, x, z); }); },
         nav: (NIV && NIV.superior ? NIV.superior.areas : []).reduce(function(n, r){ return { x0: Math.min(n.x0, r[0]), z0: Math.min(n.z0, r[1]), x1: Math.max(n.x1, r[2]), z1: Math.max(n.z1, r[3]) }; }, ANX.reduce(function(n, a){ return { x0: Math.min(n.x0, a.r[0]), z0: Math.min(n.z0, a.r[1]), x1: Math.max(n.x1, a.r[2]), z1: Math.max(n.z1, a.r[3]) }; }, { x0: 0, z0: 0, x1: W, z1: D })) },
       alturaPiso: alturaPiso,
+      paradasEscada: paradasEscada,
       elevador: elev,
       /* para planejar rotas nos testes: roda fn como se todas as portas estivessem abertas (elas abrem ao chegar perto) */
       comPortasAbertas: function(fn){ var est = portasA.map(function(p){ return [p.segFechada.off, p.segAberta.off]; }); portasA.forEach(function(p){ p.segFechada.off = true; p.segAberta.off = false; });
@@ -769,6 +857,47 @@
       /* estado das portas que abrem (testes e depuração): ângulo 0 = fechada, 1 = aberta */
       portas: function(){ return portasA.map(function(p){ return { id: p.id, x: p.cx, z: p.cz, y: p.y, aberta: +p.ang.toFixed(3), solida: !p.segFechada.off }; }); },
       temNiveis: !!NIV,
+      /* modo VR (src/xr/sessao.js): otimizações que só valem no headset, porque mudam um pouco o visual.
+         - vidros transparentes de dupla face numa passada só (forceSinglePass, existe na r149): metade das chamadas desses vidros;
+         - a cada quadro, visibilidadeVR: contornos dos móveis só até `contorno` m da cabeça; móveis, portas, marcadores e pessoas
+           das zonas que não se veem da zona da cabeça ficam ocultos (`zonas`); blocos de móveis de outras zonas além de `dist` m também.
+         modoVR(false) desfaz tudo (sair do VR). */
+      modoVR: function(on){
+        grupo.traverse(function(o){ if (!o.material) return; [].concat(o.material).forEach(function(m){
+          if (m.transparent && m.side === THREE.DoubleSide) m.forceSinglePass = !!on; }); });
+        if (!on) {
+          celulasVR.forEach(function(c){ c.mesh.visible = true; if (c.casca) c.casca.visible = true; });
+          portasA.forEach(function(p){ p.piv.visible = true; });
+          if (npcs) npcs.grupo.children.forEach(function(n){ n.visible = true; });
+          zonaCabeca = null;
+        }
+      },
+      contornosAte: function(pos, dist){ this.visibilidadeVR(pos, { contorno: dist, zonas: false, dist: 0 }); },
+      visibilidadeVR: function(pos, op){
+        var zc = ZV && pos ? zonaEm(pos.x, pos.z, pos.y - 1.5) : null, todas = zc == null || !!TODAS[zc];
+        var ve = !todas && op.zonas ? VE[zc] : null, dist = todas && ZV ? 0 : op.dist, i, c, d;
+        zonaCabeca = zc;
+        for (i = 0; i < celulasVR.length; i++) { c = celulasVR[i];
+          d = pos ? pos.distanceTo(c.esfera.center) - c.esfera.radius : 0;
+          /* a distância máxima vale para os móveis das OUTRAS zonas: na zona da cabeça nada some (no térreo, que é uma zona só,
+             a plateia vista do café continua inteira) */
+          c.mesh.visible = (!ve || c.zona == null || veEm(ve, c.zona, c.esfera.center.x, c.esfera.center.z)) && (!dist || (zc != null && c.zona != null && GRUPO[c.zona] === GRUPO[zc]) || d <= dist);
+          if (c.casca) c.casca.visible = !op.contorno || d <= op.contorno; }
+        for (i = 0; i < portasA.length; i++) { var pa = portasA[i];
+          pa.piv.visible = !ve || !pa.zonas.length || pa.zonas.some(function(z){ return !!ve[z]; }); }   // portas: a zona aparece de algum jeito (parcial também); a análise não as cobre
+        if (npcs) npcs.grupo.children.forEach(function(n){
+          if (n.userData.zonaVR === undefined) n.userData.zonaVR = zonaEm(n.position.x, n.position.z, n.position.y);
+          n.visible = !ve || n.userData.zonaVR == null || veEm(ve, n.userData.zonaVR, n.position.x, n.position.z); });
+        /* marcadores: a interação recalcula a visibilidade (por piso) a cada quadro antes do desenho; aqui só se esconde */
+        if (ve) interativosAmb.forEach(function(it){
+          if (!it._mesh) return;
+          if (it.zonaVR === undefined) it.zonaVR = zonaEm(it.x, it.z, it.piso != null ? it.piso : (it.y > 3 ? 4.2 : 0));
+          if (it.zonaVR != null && !veEm(ve, it.zonaVR, it.x, it.z)) it._mesh.visible = false; });
+      },
+      /* zona da cabeça no último quadro de VR (null fora de zona ou sem zonas) e consulta para testes/medições */
+      zonaVR: function(){ return zonaCabeca; },
+      zonaEm: zonaEm,
+      zonasVR: ZV,
       atualizar: function(t, camPos, jogador){ for (var i = 0; i < animados.length; i++) animados[i](t, camPos, jogador); },
       dispose: function(){
         if (npcs) npcs.dispose();
