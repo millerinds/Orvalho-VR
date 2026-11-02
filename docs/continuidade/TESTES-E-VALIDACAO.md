@@ -49,6 +49,65 @@ Além dos testes anteriores, o Hall passa a validar:
 - quatro empresas confirmadas na Incubadora;
 - erros de console e desempenho.
 
+## Suíte completa no fechamento do VR (02/11/2026, 8ª rodada; GPU, um teste por vez)
+
+| Teste | Resultado | Tempo |
+|---|---|---|
+| fluxo do avatar | passou | 10 s |
+| Lab (Jujuba, Gota, Esguio) | passaram | ~32 s cada |
+| Hall (Jujuba, Gota) | passaram | ~9,5 min cada |
+| Hall (Esguio) | 1 falha, **intermitente e já conhecida**: "vidro do 1º andar permaneceu sólido fora da porta" (z = 14,72); veja a pista em `docs/vr/ESTADO-E-PENDENCIAS.md` | ~10 min |
+| 1º andar (`primeiro-andar.js`) | passou | 70 s |
+| `vr.js` | passou | 3 min |
+| `vr-locomocao.js` | 3 falhas na 1ª passada, **novas e corrigidas**; depois passou inteiro | ~2 min |
+
+As 3 falhas novas dependiam do fps do emulador (o PC estava carregado depois do Hall):
+- o teste do assento empurrava o stick até o fim, e passados 0,5 s isso levanta, por desenho. Agora empurra só até a metade;
+- o pulo perdia altura com quadros longos (Euler). O jogo passou a usar a trajetória exata, e a altura é a mesma a qualquer fps;
+- a subida da escada tinha tempo fixo. Agora empurra até chegar.
+
+Depois das correções: `vr`, `vr-locomocao`, `lab` e `avatar` passaram.
+
+## VR: zonas por geometria, escada no teleporte, mãos e raio (02/11/2026, 7ª rodada)
+
+- `testes/vr.js` (15 seções) passou com GPU. A seção 12 agora confere a visibilidade parcial: do ACIOC, só os blocos das salas dentro dos retângulos da tabela, e nenhum do Administrativo.
+- `testes/vr-locomocao.js` (seções 16–23) passou. Novidades:
+  - mãos;
+  - raio (alvo, tolerância de 6° pega e 20° não, alcance, gatilho);
+  - sentar e levantar nas duas posturas;
+  - Lab → Hall dentro do VR;
+  - escada no teleporte (paradas);
+  - vinheta desligada sem custo.
+  - O teste agora grava medições numa pasta temporária, não mais em `testes/medicoes-vr/`.
+- `lab` (Jujuba) e `avatar` passaram. O Hall completo fica para o fim da fase.
+- Ferramenta nova (fora do `teste:tudo`): `testes/visibilidade-zonas-vr.js`.
+
+## VR: locomoção, etapas 2a–2d (02/11/2026, 6ª rodada)
+
+- `npm run teste:vr` agora roda `testes/vr.js` (15 seções) e `testes/vr-locomocao.js` (seções 16–19: opções e framebuffer, andar, correr, vinheta e giro, escada, guarda-corpo e pulo, teleporte, postura e modo teste). Todos passaram com GPU, um por vez, sem erros no console.
+- `lab` (Jujuba) e `avatar` também passaram. O Hall completo fica para o fim da fase.
+- O teste de teleporte na escada achou um bug (a rampa sempre recusada), que foi corrigido.
+- Conforto, mira e altura sentada só se confirmam no Quest. O checklist está em `VR-WEBXR.md`, "6ª rodada".
+
+## VR: saída pelo B, bipes, giro automático e baterias (02/11/2026, 5ª rodada)
+
+- `npm run teste:vr` agora tem 15 seções e passou inteiro (GPU):
+  - a 9 testa o B: curto, segurado e solto, segurado até sair, vibração e os grips sem efeito;
+  - a 11 usa `?vr-giro=0`;
+  - as novas 13–15 testam o giro automático com bipes, a bateria Lab (parâmetros e foveação trocados na sessão, fim automático) e a bateria Hall (9 pontos nos dois pavimentos, posição, altura e zona de cada início).
+- `lab` (Jujuba) e `avatar` passaram. O Hall completo fica para o fim da fase, a pedido do usuário.
+- Detalhes em `VR-WEBXR.md`, seção "5ª rodada".
+
+## Medição do VR no Quest e zonas do Hall (31/10/2026, 4ª rodada)
+
+- `npm run teste:vr` agora tem 12 seções: modo teste (`?vr-teste`, registros por POST gravados numa pasta temporária, setores de yaw, marca pelo botão A), página `/t`, recusas do endpoint, zonas e distância máxima dos móveis. Falha se aparecer o aviso "Can't change size while VR device is presenting".
+- Ferramentas de análise (fora do `teste:tudo`): `npm run medir:vr` (categorias e zonas por draw; `VARRER=1` mede 8 direções), `node testes/pulos-zonas-vr.js` (o que aparece/some ao atravessar cada passagem entre zonas) e `npm run medicoes:vr` (resume o que o Quest gravou em `testes/medicoes-vr/`).
+- Nesta rodada, a pedido do usuário, rodaram só `vr`, `lab` e `avatar` a cada passo e o Hall uma vez no fim. Detalhes em `VR-WEBXR.md`.
+
+## Modo VR, etapa 1 (31/10/2026, Claude)
+
+`npm run teste:vr` (novo, com o IWER) passou. A suíte completa ainda precisa ser refeita com a máquina livre: o Hall deu "tempo esgotado" nesta máquina Windows até com o código original, e a última rodada foi interrompida por falta de memória. Detalhes e checklist do Quest em `VR-WEBXR.md`.
+
 ## Correções do 1º andar, 2ª rodada (31/10/2026, Claude)
 
 `npm run teste:tudo` e `npm run teste:primeiro` passaram, sem erros de console: fluxo do avatar, Lab (3 corpos), Hall + 1º andar (3 corpos) e matriz do 1º andar.

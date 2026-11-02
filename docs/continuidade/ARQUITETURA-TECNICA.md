@@ -93,6 +93,14 @@ O guarda-corpo visual é derivado das bordas do mezanino. A abertura da escada �
 
 Geometrias, materiais e texturas criados por um ambiente são guardados e descartados na troca. Móveis repetidos usam `InstancedMesh`; peças compatíveis são mescladas. Não há sombras em tempo real nem pós-processamento.
 
+As instâncias de cada tipo de móvel são divididas em **células de 8 m por pavimento** (`celulas`, `involucro` e `esferaDasInstancias` em `sala.js`). Cada célula é uma `InstancedMesh` com geometria-invólucro: os atributos e o índice são compartilhados, mas a `boundingSphere` é das instâncias da célula. Assim o recorte pela câmera funciona. **A r149 cria toda `InstancedMesh` com `frustumCulled = false`**, por isso o valor é ligado explicitamente na célula e no contorno. `O.config.celulaMoveis` troca o lado da célula (medições).
+
+Em VR, `amb.modoVR(true)` põe os vidros transparentes de dupla face em uma passada (`forceSinglePass`). A cada quadro, `amb.visibilidadeVR(cabeça, { contorno, zonas, dist })` (chamada por `sessao.js` antes do `renderer.render`) esconde os contornos das células distantes e, no Hall, aplica as **zonas de visibilidade** (`def.zonasVR`): cada célula de móveis pertence a uma zona (a chave da célula inclui a zona), assim como as portas que abrem (zonas dos dois lados), os marcadores (`it._mesh`) e as pessoas (`userData.npc`). Some o que está em zona que não se vê da zona da cabeça, e os blocos de móveis de outras zonas além de `dist` m. Zona com `todas: true` (a escada) mostra tudo e sem limite de distância; `piso: null` vale nos dois pavimentos. Zonas com o mesmo `grupo` (o café e o resto do térreo) se veem sempre e contam como a zona da cabeça para a distância. Em `ve`, `{ zona, em: [[x0, z0, x1, z1], …] }` é visibilidade parcial: só os blocos de móveis, pessoas e marcadores daquela zona com centro nos retângulos (as portas aparecem se a zona aparece de algum jeito). A tabela do Hall é gerada por `testes/visibilidade-zonas-vr.js` (02/11). Piso, paredes e vidros nunca somem. `modoVR(false)` desfaz tudo. `contornosAte` continua existindo como atalho.
+
+`amb.paradasEscada(x, z)` devolve o pé, os patamares e o topo da escada navegável sob (x, z), com a cota (teleporte do VR).
+
+As peças de alumínio de cada porta que abre (caixilho, dobradiças, puxador) são uma malha só (`porta-ferragem`), filha do pivô.
+
 ## Compatibilidade a preservar
 
 - three.js deve permanecer na r149 enquanto os shaders atuais forem usados.

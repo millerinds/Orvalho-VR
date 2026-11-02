@@ -43,6 +43,48 @@ Data do handoff: 30/10/2026.
   - folhas que abrem e fecham e cabine visível nos dois pavimentos;
   - painel lateral com visor e seta de viagem.
 
+## Modo VR (WebXR) · prova de conceito fechada em 02/11/2026 (documentação para continuar: `docs/vr/`)
+
+> **02/11:**
+> - medições do Quest lidas (zonas e distância ajudaram: piores vistas de 41–54 para 51–68 fps, mas nenhuma chega a 72);
+> - a otimização do Hall está **estacionada**;
+> - sair do VR agora é **segurar B 1,5 s**;
+> - o modo teste ganhou bipes, giro automático e baterias;
+> - locomoção (2a–2d) aprovada no Quest;
+> - 7ª rodada:
+>   - quadros lentos atribuídos ao instrumento (medidor e log) e instrumento aliviado;
+>   - vinheta preta;
+>   - zonas recalculadas por geometria, com visibilidade parcial;
+>   - escada com paradas no teleporte;
+>   - **mãos (3a) e raio, sentar e Lab → Hall (4a)**;
+> - **parado para o teste no Quest**;
+> - as opções para as mesas que somem vistas da Incubadora aguardam o usuário.
+>
+> Ver a "5ª rodada" em `VR-WEBXR.md`.
+
+- **Para continuar, leia primeiro a seção "Retomar aqui" de `docs/continuidade/VR-WEBXR.md`.** Ela tem o que está pronto, os resultados do Quest, as pendências em ordem, as decisões e os comandos.
+- **Sem git até o usuário mandar.** Backup de antes do VR: uma cópia local da pasta (fora do repositório) (com `.git`; não apagar). A branch `recurso/vr-webxr` só será criada quando o usuário mandar.
+- **Pronto:**
+  - etapa 1 (sessão, rig, câmera, colisão pela cabeça), testada no Quest 3S;
+  - 72 Hz;
+  - framebuffer por ambiente (Lab ×1,5, Hall ×1,2; teto 1,5) e foveação 1;
+  - medidor e log em VR;
+  - saída segurando B por 1,5 s (até 01/11, eram os dois grips);
+  - `?vr-ponto`;
+  - página de testes `/t` com medição automática (só no `npm run servir:https`);
+  - otimizações do Hall: células com recorte, portas juntas e, só em VR, contornos até 10 m, zonas de visibilidade e distância máxima de 25 m para móveis de outras zonas.
+- **Feito em 02/11:** locomoção (andar suave, correr, giro por passos/suave, vinheta, pulo, teleporte, postura); framebuffer ×1,2 no jogo.
+- **Feito em 02/11 (7ª rodada):** mãos de gelatina nos controles, laser com alvos (tolerância angular, 4,5 m), sentar e levantar, troca Lab → Hall dentro do VR.
+- **Não feito:** corpo (tronco) (o boneco fica oculto em VR), painéis de UI em mundo (equipamentos, conversa e elevador mostram um aviso), opções em VR e provador em VR.
+- **Quest 3S até agora:**
+  - Lab: ~71 fps (fb 1,5, foveação 1);
+  - Hall: limitado por draws, não por pixels (fb 1,0 = 1,2).
+    - Em 02/11, com zonas + 25 m: média de 63–67 fps por ponto.
+    - Piores setores: escada 315° (48), Incubadora 315° (51), ACIOC 135° (53), entrada 45° (58) e café 315° (61).
+- **Próximo passo:** o usuário testa a 3a e a 4a no Quest (checklist na "7ª rodada" de `VR-WEBXR.md`) e decide sobre as mesas da Incubadora; depois, a etapa 5 (kit de painéis).
+- **A decidir no aparelho:** altura dos NPCs (1,30 m) em VR e a largura do tronco escalado (~1,6×) em relação ao colisor.
+- **Teste instável do Hall** (vidro do 1º andar e bolha da porta do elevador): investigar a causa, não repetir até passar. Pista em `VR-WEBXR.md`.
+
 ## Parcial ou propositalmente limitado
 
 - As divisas e dimensões do 1º andar são estimadas pelas fotos, pois não há planta oficial do pavimento.

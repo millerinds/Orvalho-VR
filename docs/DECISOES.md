@@ -123,3 +123,54 @@ Registro das escolhas feitas na primeira versão jogável (30/10/2026), com o mo
 - O vão de uma porta só contém a folha: montantes, trilhos e vidros fixos são cortados nele.
 - A largura do estúdio de podcast foi reduzida para 3,8 m, conforme o usuário; o espaço liberado ficou com a sala de reuniões com servidor.
 
+
+## 31/10/2026 · Modo VR (WebXR), etapa 1: sessão e câmera
+
+- **Mesma r149, sem addons.** O `VRButton`, o `XRControllerModelFactory` e o `HTMLMesh` da r149 só existem como ES module (misturar com o UMD criaria dois THREE). O botão é próprio; os controles serão os braços de gelatina; os painéis em mundo serão canvas próprios. O `XRControllerModelFactory` também baixaria modelos de um CDN em tempo de execução.
+- **Escala 1:1 (decisão do usuário, opção A).** Olhos na altura real; o corpo do boneco em VR será escalado para a altura de quem joga (etapa 3) e o colisor continua o derivado do corpo. Portas (2,10 m), escada (espelho 17,5 cm, piso 30 cm, 1,25 m de largura), mesas (0,72–0,75 m) e balcões (~1,0 m) já estão em medida real. Pontos a decidir no aparelho: NPCs continuam com 1,30 m; o tronco escalado (~1,6×) fica mais largo que o colisor.
+- **Laço:** `renderer.setAnimationLoop` no lugar de `requestAnimationFrame`. No desktop é o mesmo laço; numa sessão o three usa o da sessão. Em VR o desenho nunca para (imagem congelada no headset enjoa).
+- **Reference space:** a r149 pede um tipo só no `setSession` e falha se não existir; o tipo é escolhido antes (local-floor → bounded-floor → local). Em `local` o rig sobe 1,6 m de olhos estimados.
+- **Rig:** a câmera é filha de `xr-rig`; o three escreve a pose da cabeça em `camera.position/quaternion` relativa ao rig. Movimento e giro mexem só no rig.
+- **Colisão pela cabeça real:** o ponto da cabeça passa por `alturaPiso` e `colisao.resolver` com o raio do corpo, como o boneco no desktop; o rig recua o que foi recusado. Andar fisicamente sobe a escada e não atravessa paredes, vidros nem guarda-corpos. `y` continua persistido.
+- **DOM em VR:** o Quest não tem DOM overlay em sessão imersiva; `body.em-vr` esconde HUD, bolha, painel e elevador. A UI será recriada em mundo (etapas 5–6).
+- **Medidor:** painel preso à vista com fps, tempo de quadro, CPU, draw calls, framebuffer e foveação, para medir cedo o custo real no Quest (a r149 não tem multiview: cada draw call é feita duas vezes).
+- **Testes:** o `iwer` (Meta) entra só como devDependency (`npm run teste:vr`); nada dele vai para o site.
+
+## 02/11/2026 · VR: saída pelo B, modo teste mais fácil e prioridade para andar e interagir
+
+- **Prioridade:** a otimização do Hall está estacionada. As medições do Quest mostraram que zonas + distância ajudam (+7 a +16 fps nas piores vistas), mas nenhuma chega a 72. O foco agora é andar e interagir; as pendências de desempenho estão registradas em `continuidade/VR-WEBXR.md`.
+- **Sair do VR segurando B por 1,5 s**, com anel de progresso e vibração. Os dois grips não saem mais.
+  - B curto (soltar antes de 0,5 s) mantém a função aprovada: fechar, levantar, provador.
+  - Soltar entre 0,5 e 1,5 s não faz nada, para que desistir de sair nunca dispare a ação curta.
+- **Modo teste (só com `?vr-teste`):**
+  - bipes: 1 no fim do aquecimento, 2 no fim da volta, 3 no fim da bateria;
+  - giro automático de 12°/s em torno da cabeça, para que todos os testes tenham o mesmo padrão;
+  - baterias por ambiente, já que o framebuffer só muda ao entrar na sessão.
+  - O formato das medições não mudou: os registros e o endpoint são os mesmos, e o `inicio` só ganhou os campos `giroAuto` e `bateria`.
+- **Pontos, variações e baterias num lugar só** (`src/xr/pontos.js`). A página `/t` lê de lá.
+
+## 02/11/2026 · VR: locomoção (etapas 2a–2d)
+
+- **Movimento pelo rig, colisão pela cabeça.** Andar, teleporte e giro só movem o rig. A colisão da cabeça, a mesma do andar físico e do desktop (colisor do corpo, filtrado pela cota; `alturaPiso` com `null` no vazio), decide o que vale. Não há física paralela.
+- **Padrões:**
+  - andar suave a 1,5 m/s e correr a 2,5 m/s (clique do stick esquerdo enquanto empurra);
+  - giro por passos de 30° em torno da cabeça;
+  - vinheta fraca;
+  - em pé;
+  - pulo ligado.
+  - Atalhos temporários: Y (suave/teleporte) e clique do stick direito (passos/suave), salvos em `orvalho-vr`; nada é salvo no modo teste.
+- **Teleporte conservador:** o arco não atravessa parede, vidro, guarda-corpo, pilar nem porta fechada, e só pousa até 1 m acima ou abaixo da cota atual. Não se troca de andar pelo vão; a escada se sobe em pulos.
+- **Pulo:** o topo da cabeça fica limitado a 2,10 m acima do piso (altura das portas), porque a colisão é só em x/z. É a regra simples para não atravessar vergas.
+- **Framebuffer ×1,2 em qualquer ambiente no jogo normal**; o automático por ambiente fica só no modo teste.
+- **Quadros lentos:** registrados com os eventos do instrumento antes de mexer nele. A decisão sai da bateria Lab com o passo `lab-mudo`.
+
+## 02/11/2026 · VR: instrumento leve, zonas por geometria, escada no teleporte, mãos e raio
+
+- **Instrumento:** o medidor e o painel de log redesenham pouco (1×/s e só se algo mudou; o log só com mensagem nova ou a cada 5 s), em canvas de 75% e sem mipmaps. O POST sai do quadro. Na bateria Lab do Quest, sem os dois painéis, os quadros > 25 ms foram de 4–6/min para 0.
+- **Zonas por geometria, não por regra manual.** A tabela `ve` do Hall é gerada por `testes/visibilidade-zonas-vr.js` (item buffer na GPU). Zona com menos de 30% dos itens vistos entra só com esses itens (visibilidade parcial). Subzonas do mesmo `grupo` (café e resto do térreo) não se cortam pela distância. Refazer a análise a cada mudança de planta.
+- **Escada no teleporte:** o alvo gruda nas paradas (pé, patamar, topo). Sobe e desce em 2 teleportes. É a única exceção ao limite de 1 m de desnível.
+- **Mãos = braços do próprio boneco** (mesma geometria e materiais, em tamanho de mão de 0,30 m), sem modelos de controle. O laser sai da ponta.
+- **Alvos maiores que o visual** (tolerância angular), alcance de 4,5 m, nunca através de parede ou vidro.
+- **Sentar em VR:** trava a posição (rig fixo, sem colisão). Na postura "em pé", baixa a vista até 0,72 m acima do assento; na postura "sentado", só trava. Levanta com B curto ou com o stick.
+- **Troca de ambiente em VR** sem sair da sessão (`O.jogo.vr.irPara`). Hoje só existe a ligação Lab → Hall.
+- **Mesas da Incubadora que somem:** medidas, não aplicadas. A recomendação é compartilhar os materiais da estrutura e depois aumentar a distância só para o térreo visto do 1º andar.
