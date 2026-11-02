@@ -301,6 +301,8 @@ svg.i{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8;
 .btn.ghost{color:var(--sky-deep); background:linear-gradient(180deg,#fff,#e9f6ff);
   }
 .btn.ghost::before{opacity:.6}
+/* botão-gota água: entrar em VR */
+.btn.vr{background:linear-gradient(180deg,#7ae6ec 0%,#22c3cb 48%,#0b8a95 52%,#17aab3 100%); --e:var(--edge-aqua)}
 /* ---------- card de borda grossa (assinatura) ---------- */
 /* contorno sólido grosso + sombra dura deslocada (herança do Quiz Toon), com gloss Aero por dentro */
 .acrylic{
@@ -378,6 +380,28 @@ body.em-jogo{overflow:hidden}
   padding:10px 18px; border-radius:20px; color:var(--ink); font-size:.86rem; max-width:calc(100% - 32px); transition:opacity .4s ease}
 .hud-dica span{display:flex; align-items:center; gap:6px; white-space:nowrap}
 .hud-dica.some{opacity:0; pointer-events:none}
+
+/* ---------- modo VR ---------- */
+/* no Quest Browser o botão de VR vem primeiro e maior (a sessão só abre com um gesto, então ele precisa estar à mão) */
+body.vr-destaque #btn-vr{order:-1; padding:18px 30px; font-size:1.15rem}
+body.vr-destaque #btn-vr svg.i{width:24px; height:24px}
+/* durante a sessão imersiva nada do DOM vale (o Quest não tem DOM overlay); ao sair, tudo volta como estava */
+body.em-vr .hud-top, body.em-vr .hud-dica, body.em-vr .aviso, body.em-vr .painel-back, body.em-vr .elevador-ui{display:none !important}
+body.em-vr .jogo canvas{cursor:default}
+/* diagnóstico/log do VR (?vr-log=1, src/xr/log.js): quadrinho de depuração, por cima de tudo, só quando ligado */
+.diag-vr{position:fixed; left:10px; bottom:10px; z-index:200; width:min(380px,calc(100vw - 20px)); max-height:45vh; display:flex; flex-direction:column;
+  padding:8px 10px 8px 12px; border-radius:14px; border:2.5px solid var(--edge); box-shadow:4px 4px 0 var(--edge);
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(214,240,255,.96)); color:var(--ink); font:500 11px/1.35 var(--f-num)}
+.diag-vr header{display:flex; align-items:center; justify-content:space-between; font:800 .8rem/1 var(--f-display)}
+.diag-vr header button{border:0; background:transparent; color:var(--ink); font:800 1.1rem/1 var(--f-display); cursor:pointer; padding:2px 6px}
+.diag-vr dl{display:grid; grid-template-columns:auto 1fr; gap:0 8px; margin:6px 0 4px}
+.diag-vr dt{color:var(--ink-soft)} .diag-vr dd{margin:0; font-weight:700; word-break:break-all}
+.diag-vr dd.ruim{color:#c8304d}
+.diag-vr .diag-med{margin:0 0 4px; color:var(--ink-soft)}
+.diag-vr .diag-teste{margin:4px 0 0; font-weight:800}
+.diag-vr .diag-teste a{color:var(--ink); pointer-events:auto}
+.diag-vr ol{list-style:none; margin:0; padding:4px 0 0; border-top:1.5px solid rgba(11,58,110,.25); overflow:auto; min-height:2em}
+.diag-vr li{word-break:break-word} .diag-vr li.erro{color:#c8304d} .diag-vr li.aviso{color:#a85a00}
 
 /* aviso flutuante: bolha que aparece perto do equipamento */
 .aviso{position:absolute; left:0; top:0; z-index:3; display:flex; align-items:center; gap:8px; padding:7px 14px 7px 8px; border-radius:999px; cursor:pointer;

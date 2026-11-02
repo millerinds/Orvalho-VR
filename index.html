@@ -84,6 +84,7 @@
   <symbol id="i-door" viewBox="0 0 24 24"><path d="M5 21V4.5A1.5 1.5 0 0 1 6.5 3h11A1.5 1.5 0 0 1 19 4.5V21M3 21h18M15 12.5v.01"/></symbol>
   <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10"/></symbol>
+  <symbol id="i-vr" viewBox="0 0 24 24"><path d="M4.5 7.5h15A2 2 0 0 1 21.5 9.5v5A2.5 2.5 0 0 1 19 17h-3.1a2 2 0 0 1-1.7-.95l-1.1-1.8a1.3 1.3 0 0 0-2.2 0l-1.1 1.8a2 2 0 0 1-1.7.95H5a2.5 2.5 0 0 1-2.5-2.5v-5a2 2 0 0 1 2-2z"/><circle cx="7.6" cy="12" r="1.6"/><circle cx="16.4" cy="12" r="1.6"/></symbol>
 </svg>
 
 <!-- ====== Tela inicial ====== -->
@@ -123,6 +124,7 @@
         <button type="button" class="btn leaf" id="btn-entrar"><svg class="i"><use href="#i-play"/></svg><span>Entrar no Orvalho</span></button>
         <button type="button" class="btn" id="btn-continuar" hidden><svg class="i"><use href="#i-chev"/></svg><span>Continuar exploração</span></button>
         <button type="button" class="btn ghost" id="btn-personalizar"><svg class="i"><use href="#i-hanger"/></svg><span>Personalizar personagem</span></button>
+        <button type="button" class="btn vr" id="btn-vr" hidden><svg class="i"><use href="#i-vr"/></svg><span>Entrar em VR</span></button>
       </div>
       <ul class="facts">
         <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> andar</li>
@@ -142,6 +144,7 @@
       Orvalho <small id="hud-sala">Lab de IA</small>
     </div>
     <div class="hud-acts">
+      <button type="button" class="gbtn" id="hud-vr" hidden aria-label="Entrar em VR" title="Entrar em VR"><svg class="i"><use href="#i-vr"/></svg></button>
       <button type="button" class="gbtn" id="hud-prov" aria-label="Abrir o provador (P)" title="Provador (P)"><svg class="i"><use href="#i-hanger"/></svg></button>
       <button type="button" class="gbtn" id="hud-casa" aria-label="Voltar para o início" title="Início"><svg class="i"><use href="#i-house"/></svg></button>
     </div>
@@ -220,6 +223,8 @@
 <!-- gradiente da gota (logo), usado no HUD e no véu -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><radialGradient id="dg" cx="35%" cy="40%" r="70%"><stop offset="0" stop-color="#c9f3ff"/><stop offset=".5" stop-color="#2f9be8"/><stop offset="1" stop-color="#0a4f9c"/></radialGradient></defs></svg>
 
+<!-- log do VR primeiro: captura erros desde o carregamento (src/xr/log.js) -->
+<script src="src/xr/log.js"></script>
 <script src="vendor/three-r149.min.js"></script>
 <script src="src/orvalho.js"></script>
 <script src="src/boneco/paleta.js"></script>
@@ -242,6 +247,18 @@
 <script src="ambientes/hall-inovale/moveis-hall.js"></script>
 <script src="ambientes/hall-inovale/hall-inovale.js"></script>
 <script src="ambientes/hall-inovale/conteudo.js"></script>
+<script src="src/xr/pontos.js"></script><!-- ?vr-ponto=…: antes do app.js, que lê a exploração salva -->
 <script src="src/app.js"></script>
+<!-- modo VR (WebXR): só aparece se o navegador tiver suporte; ver src/xr/ -->
+<script src="src/xr/opcoes.js"></script>
+<script src="src/xr/rig.js"></script>
+<script src="src/xr/desempenho.js"></script>
+<script src="src/xr/botoes.js"></script>
+<script src="src/xr/veu.js"></script>
+<script src="src/xr/locomocao.js"></script>
+<script src="src/xr/maos.js"></script>
+<script src="src/xr/raio.js"></script>
+<script src="src/xr/teste.js"></script>
+<script src="src/xr/sessao.js"></script>
 </body>
 </html>

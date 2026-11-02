@@ -54,18 +54,22 @@
     /* primeira visita: "Entrar" passa antes pelo provador */
     btnEntrar.querySelector('span').textContent = O.avatar.exists() ? 'Entrar no Orvalho' : 'Criar avatar e entrar';
   }
-  function entrar(continuar){
-    if (!O.avatar.exists()) { abrirProvador('inicio'); return; }
+  /* o.imediato: monta o jogo já, sem esperar o véu ser pintado (entrada direta em VR: a sessão imersiva pode pausar o
+     requestAnimationFrame da janela). Devolve false se precisou abrir o provador antes. */
+  function entrar(continuar, o){
+    if (!O.avatar.exists()) { abrirProvador('inicio'); return false; }
     veu.hidden = false; veu.classList.remove('some');
     if (avatar) avatar.stop();
-    /* espera o véu cobrir a tela antes de montar a sala (a montagem trava a página por um instante) */
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    function montar(){
       inicio.hidden = true; jogoEl.hidden = false; document.body.classList.add('em-jogo');
-      O.jogo.entrar({ cfg: O.avatar.load(), continuar: continuar, aoPronto: function(){
-        veu.classList.add('some'); setTimeout(function(){ veu.hidden = true; }, 520);
-      } });
-    }); });
+      O.jogo.entrar({ cfg: O.avatar.load(), continuar: continuar, aoPronto: esconderVeu });
+    }
+    if (o && o.imediato) montar();
+    /* espera o véu cobrir a tela antes de montar a sala (a montagem trava a página por um instante) */
+    else requestAnimationFrame(function(){ requestAnimationFrame(montar); });
+    return true;
   }
+  function esconderVeu(){ veu.classList.add('some'); setTimeout(function(){ veu.hidden = true; }, 520); }
   function voltarInicio(){
     O.jogo.sair();
     jogoEl.hidden = true; inicio.hidden = false; document.body.classList.remove('em-jogo');
@@ -84,5 +88,5 @@
   });
 
   atualizarBotoes();
-  O.app = { entrar: entrar, voltarInicio: voltarInicio, abrirProvador: abrirProvador };
+  O.app = { entrar: entrar, voltarInicio: voltarInicio, abrirProvador: abrirProvador, esconderVeu: esconderVeu };
 })(window.Orvalho);

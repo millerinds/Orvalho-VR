@@ -12,7 +12,9 @@
   var canvas = document.getElementById('jogo-canvas');
   var dica = document.getElementById('hud-dica'), hudSala = document.getElementById('hud-sala');
   var renderer = null, scene, camera, cam3, amb, player, inter, clock;
-  var running = false, ativo = false, raf = 0, t = 0;
+  var running = false, ativo = false, t = 0;
+  /* modo VR (src/xr/): quando ligado, a cabeça rastreada move o jogador e a câmera em 3ª pessoa fica parada */
+  var vr = null, vrOlho = new THREE.Vector3(), vrAntes = { x: 0, z: 0 };
   /* y é a altura do piso atual (0 no térreo, 4,2 m no 1º andar e valores intermediários na escada). */
   var st = { x: 0, y: 0, z: 0, rumo: 0, vx: 0, vz: 0, jy: 0, vy: 0 };
   /* pulo: jy = altura acima do piso (o piso continua vindo de alturaPiso), vy = velocidade vertical.
@@ -27,6 +29,7 @@
     catch (e) { console.error('[Orvalho] WebGL indisponível', e); return false; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputEncoding = THREE.sRGBEncoding; // sem tone mapping, como o kit (com ACES as cores lavavam)
+    renderer.xr.enabled = true;                   // só vale com sessão WebXR ativa (src/xr/); no desktop não muda nada
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(55, 1, 0.05, 240);
     scene.environment = O.estudio(renderer, { quente: true });
@@ -57,6 +60,9 @@
     if (!player.root.parent) scene.add(player.root);
   }
   function size(){
+    /* em VR o tamanho é o do headset: a página muda de layout ao entrar (body.em-vr) e o ResizeObserver chamaria setSize,
+       que a r149 recusa com o aviso "Can't change size while VR device is presenting". Ao sair, desligar() chama size(). */
+    if (renderer.xr && renderer.xr.isPresenting) return;
     var w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
   }
@@ -65,7 +71,7 @@
   var KEYMAP = { KeyW: 'f', ArrowUp: 'f', KeyS: 't', ArrowDown: 't', KeyA: 'e', ArrowLeft: 'e', KeyD: 'd', ArrowRight: 'd', ShiftLeft: 'r', ShiftRight: 'r' };
   function ligarControles(){
     window.addEventListener('keydown', function(e){
-      if (!ativo || !running) return;
+      if (!ativo || !running || vr) return;
       if (travado) { if (KEYMAP[e.code]) e.preventDefault(); return; }
       if (inter && inter.aberto()) { if (e.key === 'Escape') { e.preventDefault(); inter.fechar(); } return; }
       if (sentado) { // sentado: E, Enter, Espaço, Esc ou qualquer tecla de andar levanta
@@ -80,17 +86,17 @@
     window.addEventListener('keyup', function(e){ var k = KEYMAP[e.code]; if (k) keys[k] = false; });
     window.addEventListener('blur', function(){ keys = {}; });
     var drag = null;
-    canvas.addEventListener('pointerdown', function(e){ drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); canvas.classList.add('girando'); canvas.focus(); });
+    canvas.addEventListener('pointerdown', function(e){ if (vr) return; drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); canvas.classList.add('girando'); canvas.focus(); });
     canvas.addEventListener('pointermove', function(e){
       if (!drag || !running) return;
       cam3.girar(e.clientX - drag.x, e.clientY - drag.y); drag.x = e.clientX; drag.y = e.clientY; esconderDica();
     });
     function soltar(){ drag = null; canvas.classList.remove('girando'); }
     canvas.addEventListener('pointerup', soltar); canvas.addEventListener('pointercancel', soltar);
-    canvas.addEventListener('wheel', function(e){ if (!running) return; e.preventDefault(); cam3.zoom(e.deltaY); }, { passive: false });
+    canvas.addEventListener('wheel', function(e){ if (!running || vr) return; e.preventDefault(); cam3.zoom(e.deltaY); }, { passive: false });
     canvas.addEventListener('contextmenu', function(e){ e.preventDefault(); });
     document.addEventListener('visibilitychange', function(){
-      if (!ativo) return;
+      if (!ativo || vr) return;   // em VR quem manda é a sessão (parar o desenho congela a imagem no headset)
       if (document.hidden) { if (running) { parar(); running = 'oculto'; } salvar(); }
       else if (running === 'oculto') { running = false; iniciar(); }
     });
@@ -138,7 +144,13 @@
   function loop(){
     if (!running) return;
     var dt = Math.min(clock.getDelta(), 0.05); t += dt;
-    if (sentado || travado) { player.andar(0, 0); st.vx = st.vz = 0; }
+    if (vr) {   // VR: a cabeça rastreada é o jogador (colisão e piso iguais aos do desktop); o boneco fica oculto nesta etapa
+      vrAntes.x = st.x; vrAntes.z = st.z;
+      vr.passo(dt, amb, st, RAIO);
+      if (Math.hypot(st.x - vrAntes.x, st.z - vrAntes.z) > 0.01) mexeu = true;
+      player.root.position.set(st.x, st.y, st.z); player.root.rotation.y = st.rumo; player.andar(0, 0);
+    }
+    else if (sentado || travado) { player.andar(0, 0); st.vx = st.vz = 0; }
     else if (!(inter && inter.aberto())) passo(dt);
     else { player.andar(0, 0); st.vx = st.vz = 0; fisicaPulo(dt); player.root.position.y = st.y + st.jy; } // painel aberto no ar: termina a queda
     player.root.updateMatrixWorld(true);
@@ -150,11 +162,13 @@
     player.update(t, dt);
     /* a câmera sobe só metade do pulo (e com a suavização dela): acompanha sem solavanco */
     camAlvo.x = st.x; camAlvo.z = st.z; camAlvo.vx = st.vx; camAlvo.vz = st.vz; camAlvo.y = st.y + st.jy * 0.45;
-    if (conversa) cameraConversa(dt); else cam3.atualizar(camAlvo, dt, amb.colisao, amb.limites);
-    amb.atualizar(t, camera.position, st);
+    if (vr) vr.olho(vrOlho);   // posição da cabeça no mundo (a câmera em VR é filha do rig)
+    else if (conversa) cameraConversa(dt); else cam3.atualizar(camAlvo, dt, amb.colisao, amb.limites);
+    amb.atualizar(t, vr ? vrOlho : camera.position, st);
+    if (vr && vr.antesDeDesenhar) vr.antesDeDesenhar(dt);
     renderer.render(scene, camera);
+    if (vr && vr.depoisDeDesenhar) vr.depoisDeDesenhar(dt);
     if (mexeu && t - salvoEm > 1.5) salvar();
-    raf = requestAnimationFrame(loop);
   }
   /* ---------- pulo ---------- */
   var camAlvo = { x: 0, y: 0, z: 0, vx: 0, vz: 0 }, E3 = new THREE.Vector3();
@@ -188,8 +202,14 @@
   }
   function soltarPulo(){ st.jy = 0; st.vy = 0; pulo.fase = 0; sqY = 0; sqV = 0; player.root.scale.setScalar(ESCALA); }
 
-  function iniciar(){ if (running) return; running = true; clock.getDelta(); raf = requestAnimationFrame(loop); }
-  function parar(){ running = false; cancelAnimationFrame(raf); keys = {}; }
+  /* setAnimationLoop em vez de requestAnimationFrame: no desktop é o mesmo laço da janela; numa sessão WebXR o three
+     passa a usar o laço da sessão (o requestAnimationFrame da janela não serve para o headset). */
+  function iniciar(){ if (running) return; running = true; clock.getDelta(); renderer.setAnimationLoop(loop); }
+  function parar(){
+    keys = {};
+    if (vr) return;   // em VR o desenho nunca para: a imagem congelada no headset enjoa (quem trava o controle é o próprio fluxo)
+    running = false; renderer.setAnimationLoop(null);
+  }
 
   /* colisor = tronco do corpo escolhido, na escala do mundo (Jujuba ≈ 0,33 m; Gota ≈ 0,37; Esguio ≈ 0,26) */
   function raioDoCorpo(){
@@ -348,6 +368,44 @@
     irPara: irPara,
     usarElevador: abrirElevador,
     ambienteAtual: function(){ return amb ? amb.def.id : null; },
+    /* modo VR (src/xr/sessao.js): h = { passo(dt, amb, st, raio), olho(v3), antesDeDesenhar(dt)?, depoisDeDesenhar(dt)? }.
+       Ligado: teclado, mouse e câmera em 3ª pessoa param, e o boneco do jogador some (o corpo em VR vem depois).
+       Desligado: o boneco reaparece virado para onde a pessoa olhava, com a câmera atrás dele. */
+    vr: {
+      contexto: function(){ return renderer ? { renderer: renderer, scene: scene, camera: camera, st: st, amb: amb, player: player, raio: RAIO, altura: ALTURA } : null; },
+      ligar: function(h){
+        if (sentado) levantar();
+        if (inter) inter.fechar();
+        soltarPulo(); keys = {}; st.vx = st.vz = 0;
+        vr = h; player.root.visible = false;
+        if (!running) iniciar();
+      },
+      desligar: function(){
+        if (!vr) return;
+        vr = null; player.root.visible = true; keys = {};
+        var p = { x: st.x, z: st.z }; amb.colisao.resolver(p, RAIO, st.y); st.x = p.x; st.z = p.z;
+        player.root.position.set(st.x, st.y, st.z); player.root.rotation.y = st.rumo;
+        camera.fov = 55; camera.updateProjectionMatrix(); size();   // a sessão troca a projeção da câmera
+        cam3.restaurar({ yaw: st.rumo + Math.PI }); cam3.atualizar(st, 0, amb.colisao, amb.limites);
+        salvar(); canvas.focus();
+      },
+      ativo: function(){ return !!vr; },
+      /* troca de ambiente dentro da sessão (raio.js chama com a vista escura): sem parar() nem requestAnimationFrame duplo, que
+         não rodam numa sessão imersiva. Monta o ambiente novo, põe o jogador na chegada e compila os shaders de uma vez. */
+      irPara: function(id){
+        if (!vr || !O.ambientes.lista[id] || (amb && amb.def.id === id)) return false;
+        var de = amb ? amb.def.id : null;
+        if (inter) inter.fechar();
+        carregarAmbiente(id);
+        var def = amb.def, chegada = (def.chegadas && def.chegadas[de]) || def.entrada;
+        posicionar(chegada, null);
+        player.root.visible = false;
+        renderer.compile(scene, camera);
+        salvar();
+        console.info('[Orvalho VR] ambiente trocado: ' + de + ' → ' + id);
+        return true;
+      }
+    },
     /* para testes e depuração */
     _debug: function(){ return { raio: RAIO, escala: ESCALA, st: st, cam: cam3 && cam3.estado, player: player, amb: amb, renderer: renderer, camera: camera, keys: keys, info: renderer && renderer.info }; }
   };
