@@ -3,15 +3,23 @@
   "private": true,
   "description": "Orvalho: Lab de IA em 3D (Frutiger Aero). O jogo não tem dependências; o playwright-core só roda os testes.",
   "scripts": {
+    "servir": "node testes/servir.js",
+    "servir:https": "node testes/servir-https.js",
     "teste:avatar": "node testes/fluxo-avatar.js",
     "teste:navegacao": "node testes/navegacao.js",
     "teste:navegacao:gota": "node testes/navegacao.js --corpo=gota",
     "teste:navegacao:esguio": "node testes/navegacao.js --corpo=esguio",
     "teste:hall": "node testes/navegacao.js --ambiente=hall-inovale",
     "teste:primeiro": "node testes/primeiro-andar.js",
-    "teste:tudo": "node testes/fluxo-avatar.js && node testes/navegacao.js && node testes/navegacao.js --corpo=gota && node testes/navegacao.js --corpo=esguio && node testes/navegacao.js --ambiente=hall-inovale && node testes/navegacao.js --ambiente=hall-inovale --corpo=gota && node testes/navegacao.js --ambiente=hall-inovale --corpo=esguio"
+    "teste:vr": "node testes/vr.js && node testes/vr-locomocao.js",
+    "teste:vr:locomocao": "node testes/vr-locomocao.js",
+    "medir:vr": "node testes/medir-vr.js",
+    "medicoes:vr": "node testes/resumir-medicoes-vr.js",
+    "teste:tudo": "node testes/fluxo-avatar.js && node testes/navegacao.js && node testes/navegacao.js --corpo=gota && node testes/navegacao.js --corpo=esguio && node testes/navegacao.js --ambiente=hall-inovale && node testes/navegacao.js --ambiente=hall-inovale --corpo=gota && node testes/navegacao.js --ambiente=hall-inovale --corpo=esguio && node testes/vr.js && node testes/vr-locomocao.js"
   },
   "devDependencies": {
-    "playwright-core": "1.56.0"
+    "iwer": "2.7.0",
+    "playwright-core": "1.56.0",
+    "selfsigned": "5.5.0"
   }
 }

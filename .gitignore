@@ -25,9 +25,25 @@ docs/hall/*.svg
 # ---------- artefatos dos testes (gerados a cada execução) ----------
 testes/*.png
 testes/relatorio-*.json
+# medições do Quest gravadas pelo npm run servir:https (modo ?vr-teste)
+testes/medicoes-vr/
 
 # ---------- local ----------
 .env
 .env.*
 *.log
 .claude/
+# certificado e chave do `npm run servir:https` (gerados na 1ª execução; nunca versionar)
+.certs/
+*.key
+*.crt
+*.pem
+# ---------- ferramentas e arquivos locais (Claude Code, editores, temporários) ----------
+CLAUDE.local.md
+.mcp.json
+*.tmp
+*.bak
+*.swp
+Thumbs.db
+tmp/
+temp/
