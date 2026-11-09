@@ -1,5 +1,6 @@
 /* Elevador interno do Hall: portas que abrem de verdade, cabine visível, seleção de pavimento e viagem no mesmo ambiente.
-   Só térreo e 1º andar estão habilitados; os demais botões permanecem informativos.
+   Térreo, 1º andar e "Lab IA" estão habilitados (o Lab não tem pavimento atribuído: ligação provisória, sem número);
+   2 e 3 permanecem informativos. atual pode ser 0, 1 ou 'lab' (cabine vinda do Lab, portas fechadas).
    criar3D(cfg, ctx): monta folhas e cabine em cada parada (cfg.paradas) e devolve { porta(piso, aberta), atualizar(dt) }.
    abrir(atual, h): painel; h = { portas(piso, aberta), mover(piso), fim() } — a cena continua desenhando por trás. */
 (function(O){
@@ -57,17 +58,21 @@
 
     abrir: function(atual, h){
       monta(); limpar(); aberto = true; camada.hidden = false;
-      estado.textContent = 'Portas abrindo…'; mostrarVisor(atual, '');
-      h.portas(atual, true);
-      timers.push(setTimeout(function(){ if (aberto) estado.textContent = 'Portas abertas — entre e escolha o andar.'; }, 650));
-      botoes.forEach(function(bt){ bt.disabled = +bt.dataset.piso === atual; bt.classList.toggle('atual', +bt.dataset.piso === atual); });
+      mostrarVisor(atual, '');
+      if (atual === 'lab') estado.textContent = 'Você veio do Lab IA. Escolha o destino.';
+      else {
+        estado.textContent = 'Portas abrindo…';
+        h.portas(atual, true);
+        timers.push(setTimeout(function(){ if (aberto) estado.textContent = 'Portas abertas — entre e escolha o andar.'; }, 650));
+      }
+      botoes.forEach(function(bt){ bt.disabled = pisoDe(bt) === atual; bt.classList.toggle('atual', pisoDe(bt) === atual); });
       function sair(){ if (!aberto) return; aberto = false; camada.hidden = true; limpar(); h.fim(); }
       camada.querySelector('.elevador-fechar').onclick = function(){ h.portas(atual, false); sair(); };
       botoes.forEach(function(bt){
         bt.onclick = function(){
           if (bt.disabled || !aberto) return;
           botoes.forEach(function(b){ b.disabled = true; });
-          timers = timers.concat(O.elevador.viajar(atual, +bt.dataset.piso, {
+          timers = timers.concat(O.elevador.viajar(atual, pisoDe(bt), {
             portas: h.portas, mover: h.mover, fim: sair,
             texto: function(t){ estado.textContent = t; }, visor: mostrarVisor }));
         };
@@ -92,7 +97,8 @@
   };
 
   function limpar(){ timers.forEach(clearTimeout); timers = []; }
-  function mostrarVisor(piso, sentido){ visor.querySelector('b').textContent = piso ? '1' : 'T'; visor.className = 'elevador-visor' + (sentido ? ' ' + sentido : ''); }
+  function pisoDe(bt){ return bt.dataset.piso === 'lab' ? 'lab' : +bt.dataset.piso; }
+  function mostrarVisor(piso, sentido){ visor.querySelector('b').textContent = piso === 'lab' ? 'Lab' : piso ? '1' : 'T'; visor.className = 'elevador-visor' + (sentido ? ' ' + sentido : ''); }
   function monta(){
     if (camada) return;
     camada = document.createElement('div'); camada.className = 'elevador-ui'; camada.hidden = true;
@@ -105,7 +111,8 @@
       '<button type="button" data-piso="1"><b>1</b><span>1º andar</span></button>' +
       '<button type="button" disabled><b>2</b><span>Indisponível</span></button>' +
       '<button type="button" disabled><b>3</b><span>Indisponível</span></button>' +
-      '</div><p class="elevador-nota">Os pavimentos superiores ainda não estão disponíveis nesta versão.</p></section>';
+      '<button type="button" data-piso="lab" class="elevador-lab"><b>IA</b><span>Lab IA</span></button>' +
+      '</div><p class="elevador-nota">Os pavimentos superiores ainda não estão disponíveis nesta versão. O Lab IA não tem pavimento definido (ligação provisória).</p></section>';
     document.getElementById('jogo').appendChild(camada);
     estado = camada.querySelector('.elevador-estado'); botoes = camada.querySelectorAll('[data-piso]'); visor = camada.querySelector('.elevador-visor');
   }

@@ -104,6 +104,6 @@ Orvalho.ambientes.registrar({
     { id: 'monitor-3', x: 4.30, y: 1.10, z: 2.84, raio: 1.6, rotulo: 'Ver projeto', conteudo: 'monitor-3' },
     { id: 'recarga',   x: 2.62, y: 1.15, z: 0.40, raio: 1.4, rotulo: 'O que é isto?', conteudo: 'recarga' },
     { id: 'porta',     x: 7.12, y: 1.3, z: 0.70, raio: 1.3, rotulo: 'Corredor', conteudo: 'porta',
-      acao: { ambiente: 'hall-inovale', rotulo: 'Ir para o Hall do Inovale (ligação provisória)' } }
+      acao: { ambiente: 'hall-inovale', rotulo: 'Ir ao elevador (Hall do Inovale)' } }
   ]
 });

@@ -450,6 +450,7 @@ body.em-vr .jogo canvas{cursor:default}
 .elevador-andares button{display:flex;align-items:center;gap:12px;padding:12px;border:3px solid #91a7b5;border-radius:18px;background:#fff;color:var(--ink);font:800 1rem var(--f-body);cursor:pointer}
 .elevador-andares b{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#1b3448;color:#fff;font:900 1.1rem var(--f-num)}
 .elevador-andares button:disabled{cursor:not-allowed;opacity:.48}.elevador-andares button.atual{border-color:var(--lime);opacity:.72}
+.elevador-andares .elevador-lab{grid-column:1/-1}.elevador-andares .elevador-lab b{width:auto;padding:0 12px;border-radius:21px;background:linear-gradient(180deg,#2bb3e0,#1592b5)}
 .elevador-nota{margin:16px 0 0;font-size:.78rem;color:var(--ink-soft)}
 .elevador-fechar{position:absolute;right:16px;top:14px;width:40px;height:40px;border:0;border-radius:50%;background:#fff;color:var(--ink);font:800 1.5rem/1 var(--f-body);cursor:pointer}
 
