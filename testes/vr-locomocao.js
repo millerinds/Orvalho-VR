@@ -424,20 +424,26 @@ const C = require('./vr-comum');
     }
 
     if (roda(23)) {
-    console.log('23. troca Lab → Hall em VR (porta do Lab)');
+    console.log('23. troca Lab → Hall em VR (porta do Lab → cabine do elevador do Hall; o resto em testes/vr-elevador.js)');
       const pg = await C.paginaXR(browser, erros);
       await C.preparar(pg, url, { amb: 'lab-ia', x: 5.6, y: 0, z: 1.2, rumo: Math.PI / 2, yaw: 0, pitch: 0.3, dist: 3 });
       await C.entrar(pg);
       const porta = await pg.evaluate(() => { const it = window.Orvalho.jogo._debug().amb.interativos.find(i => i.id === 'porta'), v = new THREE.Vector3(); it._mesh.getWorldPosition(v); return [v.x, v.y, v.z]; });
       await mirarEm(pg, 'right', porta);
       const r = await raioEst(pg);
-      ok(r.direita && r.direita.tipo === 'ligacao' && /Ir para/.test(r.rotulo), `a porta do Lab é alvo: "${r.rotulo}"`);
+      ok(r.direita && r.direita.tipo === 'ligacao' && r.rotulo === 'Ir ao elevador', `a porta do Lab é alvo: "${r.rotulo}"`);
       await gatilho(pg, 'right');
       await pg.waitForFunction(() => window.Orvalho.jogo.ambienteAtual() === 'hall-inovale', null, { timeout: 20000 }).catch(() => {});
       await C.quadrosXR(pg, 40);
       const h = await estado(pg), info = await pg.evaluate(() => ({ amb: window.Orvalho.jogo.ambienteAtual(), ativa: window.Orvalho.xr.sessao.ativa(), boneco: window.Orvalho.jogo._debug().player.root.visible }));
       rel.troca = { info, cab: h.cab };
-      ok(info.amb === 'hall-inovale' && info.ativa && !info.boneco && Math.hypot(h.cab.x - 14.6, h.cab.z - 13.95) < 0.6, `gatilho: vai para o Hall sem sair do VR, na chegada do Lab (cabeça em ${h.cab.x.toFixed(2)}, ${h.cab.z.toFixed(2)})`);
+      ok(info.amb === 'hall-inovale' && info.ativa && !info.boneco && Math.hypot(h.cab.x - 14.6, h.cab.z - 15.81) < 0.6, `gatilho: vai para o Hall sem sair do VR, dentro da cabine do elevador (cabeça em ${h.cab.x.toFixed(2)}, ${h.cab.z.toFixed(2)})`);
+      await toque(pg, 'right', 'b-button');
+      await pg.waitForFunction(() => window.Orvalho.xr.sessao.elevador().estado().est === 'fora', null, { timeout: 5000 }).catch(() => {});
+      await C.quadrosXR(pg, 20);
+      const hb = await estado(pg);
+      ok(Math.hypot(hb.cab.x - 14.6, hb.cab.z - 13.75) < 0.5, `B curto sai da cabine pelo térreo, diante das portas (${hb.cab.x.toFixed(2)}, ${hb.cab.z.toFixed(2)})`);
+      h.cab = hb.cab;
       await stick(pg, 'left', 0, 1); await C.quadrosXR(pg, 20); await stick(pg, 'left', 0, 0);
       const h2 = await estado(pg);
       ok(Math.hypot(h2.cab.x - h.cab.x, h2.cab.z - h.cab.z) > 0.1, 'no Hall, a locomoção continua funcionando');

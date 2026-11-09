@@ -27,15 +27,17 @@ O porte para VR (WebXR) foi desenvolvido por **Kalil**: sessão e rig de câmera
 | Ambiente | Situação |
 |---|---|
 | Meta Quest 3S · Quest Browser | Testado por Kalil em 02/11/2026 (servidor local HTTPS): entrar/sair, andar, girar, pular, teleporte, mãos, laser, sentar, Lab → Hall. Desempenho no Hall: 48–53 fps nas piores vistas (alvo 72). Ver [`docs/vr/MEDICOES-RESUMO.md`](docs/vr/MEDICOES-RESUMO.md). |
-| Chromium (playwright) + IWER, emulador da Meta | Suíte `teste:vr`, `teste:avatar` e `teste:navegacao` passando. O emulador **não** comprova conforto, fps nem comportamento no headset. |
+| Chromium (playwright) + IWER, emulador da Meta | Suíte `teste:vr` (inclui `testes/vr-elevador.js`: Lab → cabine → Hall → 1º andar → Lab numa sessão só), `teste:avatar`, `teste:navegacao` e `teste:primeiro` passando. O emulador **não** comprova conforto, fps nem comportamento no headset. |
 | Site publicado no GitHub Pages | Ver a seção "Publicação". **A sessão imersiva a partir da URL pública ainda precisa ser validada num headset real.** |
 
 ## Limitações conhecidas
 
-- Prova de conceito: painéis de equipamentos, elevador, conversa com NPCs e provador **ainda não funcionam dentro do VR** (aparece o aviso "… EM VR: NA ETAPA 5"). Fora do VR funcionam normalmente.
+- Prova de conceito: painéis de equipamentos, conversa com NPCs e provador **ainda não funcionam dentro do VR** (aparece o aviso "… EM VR: NA ETAPA 5"). Fora do VR funcionam normalmente. O **elevador funciona em VR** (veja abaixo).
+- Elevador em VR: a cabine fica fora da colisão do Hall; lá dentro a posição fica travada (só a cabeça gira), como ao sentar. O Lab não tem elevador modelado (sem foto/planta): a porta do Lab leva à cabine do elevador do Hall, e "Lab IA" aparece no painel **sem número de pavimento** (ligação provisória). 2º e 3º andares indisponíveis.
+- No desktop, o painel do elevador continua só com térreo e 1º andar (a opção "Lab IA" existe só no VR).
 - Não há tronco do boneco no VR (só as mãos) nem painel de opções em mundo; as opções são atalhos (Y, X, clique do stick direito) ou parâmetros de URL.
 - Desempenho do Hall no Quest abaixo de 72 fps em algumas vistas (escada, Incubadora, ACIOC).
-- Caminho Hall → Lab inexistente (falta referência do trajeto real).
+- Caminho físico Hall → Lab inexistente (falta referência do trajeto real); em VR, a volta ao Lab é pelo elevador ("Lab IA").
 - Outros headsets e navegadores (Pico, Vision Pro, Chrome com headset no PC etc.) não foram testados.
 - Lista completa: [`docs/vr/ESTADO-E-PENDENCIAS.md`](docs/vr/ESTADO-E-PENDENCIAS.md).
 
@@ -43,8 +45,14 @@ O porte para VR (WebXR) foi desenvolvido por **Kalil**: sessão e rig de câmera
 
 1. No Quest, abra o **Quest Browser** em <https://millerinds.github.io/Orvalho-VR/> (HTTPS, exigido pelo WebXR).
 2. Monte o boneco (ou **Continuar**) e toque em **Entrar em VR**; aceite a permissão do navegador.
-3. Stick esquerdo anda, stick direito gira, gatilho usa o laser (porta do Lab → Hall, sentar), A pula, Y alterna andar suave/teleporte. **B segurado 1,5 s sai do VR.**
-4. Sem headset, a mesma URL mostra o jogo no modo desktop normal.
+3. Stick esquerdo anda, stick direito gira, gatilho usa o laser (sentar, elevador), A pula, Y alterna andar suave/teleporte. **B segurado 1,5 s sai do VR.**
+4. **Elevador (roteiro Lab → Hall → 1º andar → Lab):**
+   - no Lab, mire a porta ("Ir ao elevador") e aperte o gatilho: você aparece dentro da cabine do Hall, com o visor em "Lab";
+   - olhe para a parede **à direita**: o painel tem Térreo, 1º andar, Lab IA, 2 e 3 (indisponíveis) e "Sair da cabine". O botão mirado acende;
+   - escolha Térreo: portas abrem; saia pelo botão "Sair da cabine", com B rápido ou empurrando o stick esquerdo;
+   - no Hall, mire "Chamar elevador" junto às portas: elas abrem e o alvo vira "Entrar no elevador"; gatilho de novo para entrar;
+   - escolha 1º andar (ou Lab IA para voltar ao Lab).
+5. Sem headset, a mesma URL mostra o jogo no modo desktop normal.
 
 ## Como atualizar a versão VR
 
@@ -128,7 +136,7 @@ O jogo também roda em realidade virtual pelo navegador (padrão WebXR, sessão 
 
 - **Entrar:** botão **"Entrar em VR"** na tela inicial (no Quest Browser ele vem primeiro e maior) ou o botão de óculos no HUD. O navegador só abre a sessão a partir de um clique, então não dá para entrar sozinho.
 - **Sair:** **segure B (controle direito) por 1,5 s**. Um anel enche na frente da vista e o controle vibra ao completar. Soltar antes não sai, e um toque rápido em B é outra ação (fechar o que estiver aberto). O botão "Sair do VR" também vai para o painel de opções. O desktop volta como estava, com o boneco onde você estava e olhando para onde você olhava.
-- **Situação:** sessão, câmera e rig, colisão pela cabeça real, medidor de fps, locomoção pelos controles, mãos de gelatina, laser, sentar e ir do Lab para o Hall. Painéis em mundo (equipamentos, conversa, elevador), corpo, provador e opções vêm nas próximas etapas.
+- **Situação:** sessão, câmera e rig, colisão pela cabeça real, medidor de fps, locomoção pelos controles, mãos de gelatina, laser, sentar e elevador com painel em mundo (Lab ↔ Hall térreo ↔ 1º andar). Painéis em mundo de equipamentos e conversa, corpo, provador e opções vêm nas próximas etapas.
 - **Controles em VR (Quest Touch):**
 
   | Controle | Ação |

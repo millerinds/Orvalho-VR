@@ -14,7 +14,7 @@
   var btnInicio = document.getElementById('btn-vr'), btnHud = document.getElementById('hud-vr');
   var quest = /OculusBrowser/i.test(navigator.userAgent);
   var suportado = false, sessao = null, iniciando = false, tipo = null, rig = null, medidor = null, espaco = null, painelLog = null, teste = null;
-  var botoes = null, anel = null, veu = null, aviso = null, loc = null, maos = null, raioXR = null;
+  var botoes = null, anel = null, veu = null, aviso = null, loc = null, maos = null, raioXR = null, elevadorVR = null;
   /* B (controle direito): segurar SAIR_B s sai do VR; um toque curto (soltar antes de B_CURTO s) faz a ação curta aprovada
      (fechar o que estiver aberto, levantar, abrir o provador). Soltar entre B_CURTO e SAIR_B não faz nada (desistiu de sair).
      O anel aparece depois de ANEL_DESDE s, para o toque curto não piscar nada. O botão "Sair do VR" definitivo vem nas opções. */
@@ -82,7 +82,8 @@
         var modoTeste = !!(O.xr.teste && O.xr.teste.ativo());
         loc = O.xr.criarLocomocao({ renderer: r, camera: ctx.camera, rig: rig, botoes: botoes, veu: veu, aviso: aviso, teste: modoTeste });
         maos = O.xr.criarMaos({ renderer: r, rig: rig, botoes: botoes, player: ctx.player, cena: ctx.scene, oculto: modoTeste });   // modo teste: sem mãos (medições comparáveis)
-        raioXR = O.xr.criarRaio({ rig: rig, maos: maos, botoes: botoes, veu: veu, aviso: aviso, loc: loc, teste: modoTeste, cena: ctx.scene, camera: ctx.camera,
+        elevadorVR = O.xr.criarElevadorVR({ rig: rig, loc: loc, veu: veu, aviso: aviso, botoes: botoes, cena: ctx.scene, camera: ctx.camera });
+        raioXR = O.xr.criarRaio({ rig: rig, maos: maos, botoes: botoes, veu: veu, aviso: aviso, loc: loc, teste: modoTeste, cena: ctx.scene, camera: ctx.camera, elevador: elevadorVR,
           raioCorpo: function(){ var c = O.jogo.vr.contexto(); return c ? c.raio : 0.33; } });
         bSaindo = false;
         if (O.xr.teste && O.xr.teste.ativo()) teste = O.xr.teste.iniciar({ medidor: medidor, sessao: s, veu: veu,   // ?vr-teste: medições por POST
@@ -108,7 +109,9 @@
             rig.passo(dt, amb, st, raio);
             maos.passo();
             raioXR.passo(dt, amb, st);
+            elevadorVR.passo(dt);
           },
+          pontoSeguro: function(){ return elevadorVR ? elevadorVR.pontoSeguro() : null; },
           olho: rig.olho,
           /* depois do passo e das animações do ambiente: a cabeça já está no lugar deste quadro */
           antesDeDesenhar: function(){ otimizar(ambQuadro, ctx.camera); medidor.antesRender(); },
@@ -214,6 +217,7 @@
     if (ambVR && ambVR.modoVR) ambVR.modoVR(false);   // o desktop volta com o visual de sempre
     ambVR = null;
     if (painelLog) { painelLog.dispose(); painelLog = null; }
+    if (elevadorVR) { elevadorVR.dispose(); elevadorVR = null; }   // antes do rig e da locomoção: dentro da cabine, volta para diante das portas
     if (raioXR) { raioXR.dispose(); raioXR = null; }
     if (maos) { maos.dispose(); maos = null; }
     if (loc) { loc.dispose(); loc = null; }
@@ -247,6 +251,7 @@
     locomocao: function(){ return loc; },
     maos: function(){ return maos; },
     raio: function(){ return raioXR; },
+    elevador: function(){ return elevadorVR; },
     aviso: function(){ return aviso; },
     /* ação curta do B: fn() devolve true se tratou (ex.: fechou um painel). Devolve a função que remove o tratador. */
     aoBCurto: function(fn){ acoesB.push(fn); return function(){ var i = acoesB.indexOf(fn); if (i >= 0) acoesB.splice(i, 1); }; }

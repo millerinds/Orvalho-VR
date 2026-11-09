@@ -5,14 +5,16 @@
      parede, vidro ou guarda-corpo (colisao.raio no chão). Se dois alvos servem, vale o mais "centrado".
    - Laser: fino e discreto (curto, translúcido) sem alvo; com alvo, vai até ele, acende e mostra um ponto, um anel e o rótulo
      (pílula Aero virada para a cabeça). Ao entrar num alvo, um tique háptico naquela mão.
-   - Gatilho daquela mão executa: assento → sentar; ligação (porta do Lab) → troca de ambiente com véu; equipamento, pessoa
-     e elevador → aviso de que o painel em VR vem na etapa 5 (o painel ainda é DOM, que não aparece no headset).
+   - Gatilho daquela mão executa: assento → sentar; ligação (porta do Lab) → troca de ambiente com véu (a porta do Lab para o
+     Hall leva à cabine do elevador, src/xr/elevador.js); elevador → chamar e entrar (src/xr/elevador.js); equipamento e
+     pessoa → aviso de que o painel em VR vem na etapa 5 (o painel ainda é DOM, que não aparece no headset).
+   - Dentro da cabine do elevador o laser só mira o painel do elevador (os botões acendem em foco); os outros alvos ficam fora.
    - Sentar: véu, a cabeça vai para o assento olhando para a frente dele, a locomoção trava e, na postura "em pé", a vista
      baixa até OLHOS_SENTADO acima do assento. Na postura "sentado", só trava a posição (a vista já é a de quem está sentado).
      Levantar: B curto (ação curta, aoBCurto) ou empurrar o stick esquerdo; vai para a saída do assento, com véu.
    - No modo teste (?vr-teste) o raio fica desligado: gatilho e A são a marca.
    API: O.xr.criarRaio(ctx) → { passo(dt, amb, st, raio), estado(), sentado(), dispose() }
-   ctx: { rig, maos, botoes, veu, aviso, loc, sessaoXR, teste, cena, camera } */
+   ctx: { rig, maos, botoes, veu, aviso, loc, sessaoXR, teste, cena, camera, elevador } */
 (function(O){
   O.xr = O.xr || {};
   var ALCANCE = 4.5, ANG_MIN = 3 * Math.PI / 180, LASER_CURTO = 0.18, OLHOS_SENTADO = 0.72, ESPERA_LEVANTAR = 0.5;
@@ -66,7 +68,11 @@
       if (it._mesh) return it._mesh.getWorldPosition(out);
       return out.set(it.x, it.y + 0.24, it.z);
     }
+    function viaElevador(it){ return !!(ctx.elevador && it.acao && it.acao.ambiente === 'hall-inovale' && O.ambientes.lista['hall-inovale'] && O.ambientes.lista['hall-inovale'].elevador); }
     function rotuloDe(it){
+      if (it.painel) return it.rotulo;
+      if (viaElevador(it)) return 'Ir ao elevador';
+      if (it.acao && it.acao.elevador && ctx.elevador) return ctx.elevador.rotulo(it);
       if (it.acao && it.acao.ambiente) { var d = O.ambientes.lista[it.acao.ambiente]; return 'Ir para ' + (d ? d.nome.replace('Laboratório', 'Lab') : it.acao.ambiente); }
       return it.rotulo || 'Interagir';
     }
@@ -125,7 +131,8 @@
       var it = alvo.it, t = tipoDe(it);
       botoes.vibrar(lado, 0.6, 50);
       if (t === 'assento') return sentar(it.assento, amb, st);
-      if (t === 'ligacao') return trocarAmbiente(it.acao.ambiente);
+      if (t === 'ligacao') return viaElevador(it) ? ctx.elevador.doLab() : trocarAmbiente(it.acao.ambiente);
+      if (t === 'elevador' && ctx.elevador) return ctx.elevador.acionar(it);
       var msg = t === 'pessoa' ? 'CONVERSA EM VR: NA ETAPA 5' : t === 'elevador' ? 'ELEVADOR EM VR: NA ETAPA 5' : 'PAINEL EM VR: NA ETAPA 5';
       if (ctx.aviso) ctx.aviso.mostrar(msg, 2);
       console.info('[Orvalho VR] gatilho em "' + rotuloDe(it) + '": ' + msg.toLowerCase());
@@ -138,11 +145,22 @@
           tSentado += dt; var e = botoes.eixos('left');
           if (tSentado > ESPERA_LEVANTAR && Math.hypot(e.x, e.y) > 0.6) levantar(amb, st);
         }
-        var algum = null;
+        var algum = null, cabine = !!(ctx.elevador && ctx.elevador.dentro()), focoPainel = null;
         LADOS.forEach(function(lado){
           var L = lasers[lado], p = maos.ponta(lado);
           if (ctx.teste || !p.ok) { L.laser.visible = false; L.ponto.visible = false; L.alvo = null; return; }
           L.laser.visible = true;
+          if (cabine) {   // na cabine: só o painel do elevador
+            var h = ctx.elevador.testar(p), alvoP = h && h.botao != null ? { it: { id: 'painel-' + h.botao, painel: true, botao: h.botao, rotulo: h.rotulo }, d: h.d, x: h.x, y: h.y, z: h.z } : null;
+            if (alvoP && (!L.alvo || L.alvo.it.id !== alvoP.it.id)) { botoes.vibrar(lado, 0.25, 20); focoLado = lado; }
+            L.alvo = alvoP;
+            L.laser.scale.set(1, 1, h ? h.d : LASER_CURTO);
+            L.mat.opacity = alvoP ? 0.85 : 0.35; L.mat.color.setHex(alvoP ? FOLHA : AGUA);
+            L.ponto.visible = !!h; if (h) L.ponto.position.set(h.x, h.y, h.z);
+            if (alvoP && (focoPainel === null || lado === focoLado)) focoPainel = alvoP.it.botao;
+            if (alvoP && botoes.botao(lado, 'gatilho').apertou) { botoes.vibrar(lado, 0.6, 50); ctx.elevador.escolher(alvoP.it.botao); }
+            return;
+          }
           var alvo = procurar(amb, st, p);
           if (alvo && (!L.alvo || L.alvo.it !== alvo.it)) { botoes.vibrar(lado, 0.25, 20); focoLado = lado; }
           L.alvo = alvo;
@@ -152,6 +170,7 @@
           if (alvo && (!algum || lado === focoLado)) algum = alvo;
           if (alvo && botoes.botao(lado, 'gatilho').apertou) executar(alvo, amb, st, lado);
         });
+        if (ctx.elevador) ctx.elevador.focar(focoPainel);
         anel.visible = rotulo.visible = !!algum;
         if (algum) {
           camera.getWorldPosition(cab);
@@ -162,7 +181,7 @@
         }
       },
       estado: function(){
-        var f = function(l){ var a = lasers[l].alvo; return a ? { id: a.it.id, tipo: tipoDe(a.it), rotulo: rotuloDe(a.it), d: +a.d.toFixed(2) } : null; };
+        var f = function(l){ var a = lasers[l].alvo; return a ? { id: a.it.id, tipo: a.it.painel ? 'painel' : tipoDe(a.it), rotulo: rotuloDe(a.it), d: +a.d.toFixed(2) } : null; };
         return { esquerda: f('left'), direita: f('right'), sentado: sentadoEm ? (sentadoEm.id || true) : null, rotulo: rotulo.visible ? textoRotulo : '' };
       },
       sentado: function(){ return sentadoEm; },

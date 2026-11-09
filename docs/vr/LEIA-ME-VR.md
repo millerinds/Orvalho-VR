@@ -9,10 +9,10 @@ Esta pasta documenta o **modo VR**: o mesmo jogo no Meta Quest 3S (ou em qualque
 - andar, correr, girar, pular e teleportar;
 - mãos de gelatina com laser;
 - sentar;
-- ir do Lab para o Hall sem sair do VR;
+- elevador com painel em mundo: Lab ↔ Hall (térreo) ↔ 1º andar sem sair do VR (09/11/2026, só testado no emulador);
 - medidor e página de testes.
 
-Faltam os painéis em mundo (equipamentos, elevador, conversa, provador), o tronco do boneco e o painel de opções.
+Faltam os painéis em mundo (equipamentos, conversa, provador), o tronco do boneco e o painel de opções.
 
 ## Índice
 | Arquivo | Para quê |

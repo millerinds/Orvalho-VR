@@ -66,17 +66,29 @@
       botoes.forEach(function(bt){
         bt.onclick = function(){
           if (bt.disabled || !aberto) return;
-          var destino = +bt.dataset.piso, sobe = destino > atual;
           botoes.forEach(function(b){ b.disabled = true; });
-          estado.textContent = 'Portas fechando…'; h.portas(atual, false);
-          timers.push(setTimeout(function(){ estado.textContent = 'Em viagem para o ' + (destino ? '1º andar' : 'térreo') + '…'; mostrarVisor(atual, sobe ? 'sobe' : 'desce'); }, 650));
-          timers.push(setTimeout(function(){ mostrarVisor(destino, sobe ? 'sobe' : 'desce'); }, 1250));
-          timers.push(setTimeout(function(){ h.mover(destino); h.portas(destino, true); mostrarVisor(destino, ''); estado.textContent = 'Chegamos. Portas abrindo…'; }, 1650));
-          timers.push(setTimeout(sair, 2100));
+          timers = timers.concat(O.elevador.viajar(atual, +bt.dataset.piso, {
+            portas: h.portas, mover: h.mover, fim: sair,
+            texto: function(t){ estado.textContent = t; }, visor: mostrarVisor }));
         };
       });
     },
-    aberto: function(){ return aberto; }
+    aberto: function(){ return aberto; },
+
+    /* a viagem, igual no painel do desktop e no painel em mundo do VR (src/xr/elevador.js): portas fecham, visor e texto,
+       mover, portas do destino abrem, fim. Pavimentos: 0 (térreo), 1 (1º andar) e, só no VR, 'lab' (Lab IA, sem pavimento
+       atribuído: ligação provisória). h = { portas(piso, aberta), mover(destino), fim(), texto(t), visor(piso, sentido) }.
+       Devolve os timers (para cancelar). */
+    viajar: function(atual, destino, h){
+      var ts = [], sentido = typeof atual === 'number' && typeof destino === 'number' ? (destino > atual ? 'sobe' : 'desce') : '';
+      h.texto('Portas fechando…'); h.portas(atual, false);
+      ts.push(setTimeout(function(){ h.texto('Em viagem para o ' + O.elevador.nome(destino) + '…'); h.visor(atual, sentido); }, 650));
+      ts.push(setTimeout(function(){ h.visor(destino, sentido); }, 1250));
+      ts.push(setTimeout(function(){ h.mover(destino); h.portas(destino, true); h.visor(destino, ''); h.texto('Chegamos. Portas abrindo…'); }, 1650));
+      ts.push(setTimeout(function(){ h.fim(); }, 2100));
+      return ts;
+    },
+    nome: function(piso){ return piso === 'lab' ? 'Lab IA' : piso ? '1º andar' : 'térreo'; }
   };
 
   function limpar(){ timers.forEach(clearTimeout); timers = []; }

@@ -306,6 +306,8 @@
   /* deslocamento vertical no mesmo Hall: preserva aparência, câmera e estado do ambiente.
      A cena continua desenhando (portas abrindo e fechando); só o controle do boneco fica travado. */
   var travado = false, fecharPortas = 0;
+  /* onde o jogador fica ao sair da cabine, diante das portas (o mesmo no desktop e no VR) */
+  function saidaElevador(piso){ return piso ? { x: 14.6, y: 4.2, z: 13.15, rumo: Math.PI } : { x: 14.6, y: 0, z: 13.75, rumo: Math.PI }; }
   function abrirElevador(){
     if (!amb || amb.def.id !== 'hall-inovale' || travado) return;
     if (sentado) levantar();
@@ -315,8 +317,7 @@
     O.elevador.abrir(atual, {
       portas: function(piso, aberta){ if (el) el.porta(piso, aberta); },
       mover: function(piso){
-        var p = piso ? { x: 14.6, y: 4.2, z: 13.15, rumo: Math.PI } : { x: 14.6, y: 0, z: 13.75, rumo: Math.PI };
-        posicionar(p, null); cam3.restaurar({ yaw: Math.PI / 2 + 0.45, pitch: 0.18, dist: 3.2 }); // de lado, ao longo do corredor: vê o boneco e as portas player.update(t, 0); cam3.atualizar(st, 0, amb.colisao, amb.limites); salvar();
+        posicionar(saidaElevador(piso), null); cam3.restaurar({ yaw: Math.PI / 2 + 0.45, pitch: 0.18, dist: 3.2 }); // de lado, ao longo do corredor: vê o boneco e as portas player.update(t, 0); cam3.atualizar(st, 0, amb.colisao, amb.limites); salvar();
       },
       fim: function(){
         travado = false; keys = {}; canvas.focus();
@@ -332,8 +333,12 @@
     salvoEm = t; mexeu = false;
     var c = cam3.estado;
     if (sentado) { var sx = st.x, sz = st.z; st.x = sentado.saida.x; st.z = sentado.saida.z; }  // salva o lugar de pé, não o assento
+    /* em VR, dentro da cabine do elevador (fora da colisão do Hall): salva o lugar diante das portas */
+    var seguro = vr && vr.pontoSeguro ? vr.pontoSeguro() : null, guardado = null;
+    if (seguro) { guardado = { x: st.x, y: st.y, z: st.z }; st.x = seguro.x; st.y = seguro.y; st.z = seguro.z; }
     try { localStorage.setItem(CHAVE, JSON.stringify({ amb: amb.def.id, x: +st.x.toFixed(3), y: +st.y.toFixed(3), z: +st.z.toFixed(3), rumo: +st.rumo.toFixed(3), yaw: +c.yaw.toFixed(3), pitch: +c.pitch.toFixed(3), dist: +c.dist.toFixed(2) })); } catch (e) {}
     if (sentado) { st.x = sx; st.z = sz; }
+    if (guardado) { st.x = guardado.x; st.y = guardado.y; st.z = guardado.z; }
   }
   function lerSalvo(){
     try { var s = JSON.parse(localStorage.getItem(CHAVE)); if (s && O.ambientes.lista[s.amb] && isFinite(s.x) && isFinite(s.z)) return s; } catch (e) {}
@@ -390,6 +395,7 @@
         salvar(); canvas.focus();
       },
       ativo: function(){ return !!vr; },
+      saidaElevador: saidaElevador,
       /* troca de ambiente dentro da sessão (raio.js chama com a vista escura): sem parar() nem requestAnimationFrame duplo, que
          não rodam numa sessão imersiva. Monta o ambiente novo, põe o jogador na chegada e compila os shaders de uma vez. */
       irPara: function(id){
