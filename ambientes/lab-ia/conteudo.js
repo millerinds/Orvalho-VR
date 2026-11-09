@@ -28,7 +28,7 @@ Orvalho.conteudo['lab-ia'] = {
   },
   'porta': {
     demo: false, kicker: 'Saída', titulo: 'Corredor do Polo Inovale',
-    texto: 'Por esta porta o visitante vai chegar aos outros espaços do Polo. O caminho real até o hall ainda não está documentado; por enquanto a passagem é uma ligação provisória.',
+    texto: 'Por esta porta o visitante vai chegar aos outros espaços do Polo. O caminho real até o hall ainda não está documentado; por enquanto a porta leva ao elevador do Hall (ligação provisória, sem pavimento definido para o Lab).',
     itens: []
   }
 };

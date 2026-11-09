@@ -32,7 +32,7 @@ Situação: **prova de conceito fechada.** Locomoção, laser, sentar e troca La
    - movimento, giro, vinheta, postura, altura dos olhos sentado, velocidades, pulo, mão dominante e ocultar corpo;
    - botões "Recentralizar" e "Sair do VR";
    - ele substitui os atalhos temporários (Y, X, clique do stick direito).
-4. **Caminho Hall → Lab.** Em VR, ida e volta são pelo elevador ("Lab IA" no painel, sem pavimento). No desktop, só existe Lab → Hall (a porta do Lab). O Hall não tem caminho de volta ao Lab nem no desktop: a ligação pelo elevador foi removida, e o trajeto real até o Lab não foi documentado. Precisa de referência (planta ou fotos) antes de modelar.
+4. **Caminho Hall → Lab.** No desktop e no VR, ida e volta são pelo elevador ("Lab IA" no painel, sem pavimento). O trajeto físico real continua sem referência. O Hall não tem caminho de volta ao Lab nem no desktop: a ligação pelo elevador foi removida, e o trajeto real até o Lab não foi documentado. Precisa de referência (planta ou fotos) antes de modelar.
 5. **Desempenho (estacionado; veja `GUIA-DE-MODELAGEM-E-OTIMIZACAO.md`):**
    - compartilhar materiais iguais da estrutura (estimativa de −130 a −160 draws nas piores vistas);
    - decidir a distância do térreo visto do 1º andar (as mesas somem ao olhar o Hall da Incubadora; opções medidas em `MEDICOES-RESUMO.md`);

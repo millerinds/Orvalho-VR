@@ -50,7 +50,8 @@
     inter = O.criarInteracao({ camera: camera, canvas: canvas, itens: amb.interativos, conteudo: O.conteudo[id],
       aoAbrir: function(it){ keys = {}; if (it && it.npc && it.alvo) conversar(it); }, aoFechar: function(){ encerrarConversa(); },
       aoAcao: function(acao){
-        if (acao && acao.ambiente) irPara(acao.ambiente);
+        if (acao && acao.ambiente && viaElevador(acao)) irPara(acao.ambiente, function(){ abrirElevador('lab'); });   // porta do Lab → elevador do Hall
+        else if (acao && acao.ambiente) irPara(acao.ambiente);
         else if (acao && acao.elevador && O.elevador) abrirElevador();
       },
       aoAssento: function(a){ sentar(a); } });
@@ -262,7 +263,9 @@
   }
   /* troca de ambiente sem sair do jogo: o mesmo boneco (mesma configuração), véu enquanto a cena monta */
   var veu = document.getElementById('veu');
-  function irPara(id){
+  /* a porta do Lab leva ao elevador do Hall (o Lab não tem pavimento atribuído: ligação provisória) */
+  function viaElevador(acao){ var d = O.ambientes.lista[acao.ambiente]; return !!(amb && amb.def.id === 'lab-ia' && acao.ambiente === 'hall-inovale' && d && d.elevador && O.elevador); }
+  function irPara(id, aoChegar){
     if (!O.ambientes.lista[id] || (amb && amb.def.id === id)) return;
     var de = amb ? amb.def.id : null, txt = veu.querySelector('p');
     if (inter) inter.fechar();
@@ -276,6 +279,7 @@
       player.update(t, 0); cam3.atualizar(st, 0, amb.colisao, amb.limites);
       renderer.compile(scene, camera); renderer.render(scene, camera);
       salvar(); iniciar(); canvas.focus();
+      if (aoChegar) aoChegar();
       veu.classList.add('some'); setTimeout(function(){ veu.hidden = true; txt.textContent = 'Entrando no Orvalho…'; }, 520);
     }); });
   }
@@ -308,20 +312,25 @@
   var travado = false, fecharPortas = 0;
   /* onde o jogador fica ao sair da cabine, diante das portas (o mesmo no desktop e no VR) */
   function saidaElevador(piso){ return piso ? { x: 14.6, y: 4.2, z: 13.15, rumo: Math.PI } : { x: 14.6, y: 0, z: 13.75, rumo: Math.PI }; }
-  function abrirElevador(){
+  /* origem 'lab': chegou pela porta do Lab, com a cabine fechada no térreo e o visor em "Lab" */
+  function abrirElevador(origem){
     if (!amb || amb.def.id !== 'hall-inovale' || travado) return;
     if (sentado) levantar();
     keys = {}; travado = true; if (!running) iniciar();
-    var atual = st.y > 3 ? 1 : 0, el = amb.elevador;
+    var atual = origem === 'lab' ? 'lab' : st.y > 3 ? 1 : 0, el = amb.elevador, viajou = false;
     clearTimeout(fecharPortas);
     O.elevador.abrir(atual, {
-      portas: function(piso, aberta){ if (el) el.porta(piso, aberta); },
+      portas: function(piso, aberta){ if (el && typeof piso === 'number') el.porta(piso, aberta); },
       mover: function(piso){
+        viajou = true;
+        if (piso === 'lab') { irPara('lab-ia'); return; }   // Lab IA: troca de ambiente (véu), chega junto à porta do Lab
         posicionar(saidaElevador(piso), null); cam3.restaurar({ yaw: Math.PI / 2 + 0.45, pitch: 0.18, dist: 3.2 }); // de lado, ao longo do corredor: vê o boneco e as portas player.update(t, 0); cam3.atualizar(st, 0, amb.colisao, amb.limites); salvar();
       },
       fim: function(){
         travado = false; keys = {}; canvas.focus();
+        if (!amb || amb.def.id !== 'hall-inovale' || amb.elevador !== el) return;   // foi para o Lab
         var piso = st.y > 3 ? 1 : 0;
+        if (atual === 'lab' && !viajou && el) el.porta(0, true);                     // veio do Lab e fechou o painel: sai pelo térreo
         fecharPortas = setTimeout(function(){ if (el && !travado) el.porta(piso, false); }, 1800);
       }
     });

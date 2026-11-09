@@ -27,17 +27,17 @@ O porte para VR (WebXR) foi desenvolvido por **Kalil**: sessão e rig de câmera
 | Ambiente | Situação |
 |---|---|
 | Meta Quest 3S · Quest Browser | Testado por Kalil em 02/11/2026 (servidor local HTTPS): entrar/sair, andar, girar, pular, teleporte, mãos, laser, sentar, Lab → Hall. Desempenho no Hall: 48–53 fps nas piores vistas (alvo 72). Ver [`docs/vr/MEDICOES-RESUMO.md`](docs/vr/MEDICOES-RESUMO.md). |
-| Chromium (playwright) + IWER, emulador da Meta | Suíte `teste:vr` (inclui `testes/vr-elevador.js`: Lab → cabine → Hall → 1º andar → Lab numa sessão só), `teste:avatar`, `teste:navegacao` e `teste:primeiro` passando. O emulador **não** comprova conforto, fps nem comportamento no headset. |
+| Chromium (playwright) + IWER, emulador da Meta | Suíte `teste:vr` (inclui `testes/vr-elevador.js`: Lab → cabine → Hall → 1º andar → Lab numa sessão só), `teste:avatar`, `teste:navegacao`, `teste:primeiro` e `teste:elevador` (elevador no desktop: Lab → Hall → 1º andar → Lab) passando. O emulador **não** comprova conforto, fps nem comportamento no headset. |
 | Site publicado no GitHub Pages | Ver a seção "Publicação". **A sessão imersiva a partir da URL pública ainda precisa ser validada num headset real.** |
 
 ## Limitações conhecidas
 
 - Prova de conceito: painéis de equipamentos, conversa com NPCs e provador **ainda não funcionam dentro do VR** (aparece o aviso "… EM VR: NA ETAPA 5"). Fora do VR funcionam normalmente. O **elevador funciona em VR** (veja abaixo).
 - Elevador em VR: a cabine fica fora da colisão do Hall; lá dentro a posição fica travada (só a cabeça gira), como ao sentar. O Lab não tem elevador modelado (sem foto/planta): a porta do Lab leva à cabine do elevador do Hall, e "Lab IA" aparece no painel **sem número de pavimento** (ligação provisória). 2º e 3º andares indisponíveis.
-- No desktop, o painel do elevador continua só com térreo e 1º andar (a opção "Lab IA" existe só no VR).
+- No desktop vale a mesma lógica: a porta do Lab ("Ir ao elevador") leva ao Hall, diante do elevador, com o painel aberto e o visor em "Lab"; o painel tem "Lab IA" (sem número de pavimento), que volta ao Lab. No desktop o boneco não entra na cabine: fica diante das portas, como antes.
 - Não há tronco do boneco no VR (só as mãos) nem painel de opções em mundo; as opções são atalhos (Y, X, clique do stick direito) ou parâmetros de URL.
 - Desempenho do Hall no Quest abaixo de 72 fps em algumas vistas (escada, Incubadora, ACIOC).
-- Caminho físico Hall → Lab inexistente (falta referência do trajeto real); em VR, a volta ao Lab é pelo elevador ("Lab IA").
+- Caminho físico Hall → Lab inexistente (falta referência do trajeto real); no desktop e no VR, a volta ao Lab é pelo elevador ("Lab IA").
 - Outros headsets e navegadores (Pico, Vision Pro, Chrome com headset no PC etc.) não foram testados.
 - Lista completa: [`docs/vr/ESTADO-E-PENDENCIAS.md`](docs/vr/ESTADO-E-PENDENCIAS.md).
 
