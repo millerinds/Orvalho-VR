@@ -1,10 +1,56 @@
-# Orvalho · Polo Inovale em 3D
+# Orvalho VR · Polo Inovale em 3D e em realidade virtual
 
-Experiência 3D no navegador, em estilo Frutiger Aero: o visitante personaliza o próprio bonequinho de vidro-gelatina (o provador do Orvalho) e explora, em terceira pessoa, o **Laboratório de Inteligência Artificial** e o **Hall do Polo Inovale**. O Hall inclui cafeteria Pin, Nexo, banheiros corrigidos, escada principal e o 1º andar refeito pelas fotos: ACIOC Hub sobre o café, núcleo, Administrativo e, numa ala leste sobre o palco, a Incubadora Joaçaba. Também tem NPCs com conversa e elevador com portas animadas entre o térreo e o 1º andar. Consulte `docs/continuidade/ESTADO-ATUAL.md`.
+Versão **VR (WebXR)** do [Orvalho](https://github.com/millerinds/Orvalho): o mesmo jogo 3D no navegador (estilo Frutiger Aero, boneco de vidro-gelatina, Lab de IA e Hall do Polo Inovale), com a opção de **entrar em VR** num headset compatível, sem instalar nada.
 
-O Lab continua como ambiente separado porque seu trajeto real no prédio não foi documentado. O elevador do Hall atende somente térreo e 1º andar e não atribui um pavimento ao Lab.
+**Jogar online:** <https://millerinds.github.io/Orvalho-VR/> · **Repositório:** <https://github.com/millerinds/Orvalho-VR>
 
-**Jogar online:** <https://millerinds.github.io/Orvalho/> · **Repositório:** <https://github.com/millerinds/Orvalho>
+**Versão tradicional (sem VR):** <https://millerinds.github.io/Orvalho/> · <https://github.com/millerinds/Orvalho>
+
+## Autoria
+
+O porte para VR (WebXR) foi desenvolvido por **Kalil**: sessão e rig de câmera, locomoção, teleporte, mãos de gelatina, laser, sentar, troca Lab → Hall, medidor de desempenho, otimizações do Hall (células de recorte e zonas de visibilidade) e os testes com o IWER. Os commits dele estão preservados neste histórico (branch original `recurso/vr-webxr`). A base é o "Orvalho 1.0" de Juan Miller. Documentação do porte: [`docs/vr/`](docs/vr/LEIA-ME-VR.md).
+
+## Relação com o Orvalho tradicional
+
+- São **repositórios e sites independentes**. Este repositório começou do commit `f192392` ("Orvalho 1.0: primeira versão pública") do `Orvalho`, mais os commits do VR. Nada aqui altera o repositório, o Pages ou as Actions do `Orvalho`.
+- No desktop, sem headset, a imagem e os controles são os do Orvalho tradicional (ver [`docs/vr/MUDANCAS-EM-RELACAO-A-VERSAO-SEM-VR.md`](docs/vr/MUDANCAS-EM-RELACAO-A-VERSAO-SEM-VR.md)).
+- Os dois sites ficam na mesma origem (`millerinds.github.io`), então **compartilham o `localStorage`**: o avatar e o ponto salvo da exploração passam de um para o outro. O formato do save é o mesmo nas duas versões; o VR só acrescenta a chave `orvalho-vr`.
+
+## Três níveis de experiência (não confundir)
+
+1. **Navegação convencional no computador:** teclado e mouse, como no Orvalho tradicional. Funciona em qualquer navegador moderno com WebGL.
+2. **Visualização 3D no navegador:** o mesmo ambiente em celular ou computador, sem imersão.
+3. **Sessão VR imersiva:** só num headset com navegador WebXR (alvo e único aparelho testado: **Meta Quest 3S, Quest Browser**). O botão **Entrar em VR** só aparece quando o navegador oferece `immersive-vr`; sem suporte, ele fica oculto e o jogo segue normal no modo 1/2.
+
+## Dispositivos e navegadores testados
+
+| Ambiente | Situação |
+|---|---|
+| Meta Quest 3S · Quest Browser | Testado por Kalil em 02/11/2026 (servidor local HTTPS): entrar/sair, andar, girar, pular, teleporte, mãos, laser, sentar, Lab → Hall. Desempenho no Hall: 48–53 fps nas piores vistas (alvo 72). Ver [`docs/vr/MEDICOES-RESUMO.md`](docs/vr/MEDICOES-RESUMO.md). |
+| Chromium (playwright) + IWER, emulador da Meta | Suíte `teste:vr`, `teste:avatar` e `teste:navegacao` passando. O emulador **não** comprova conforto, fps nem comportamento no headset. |
+| Site publicado no GitHub Pages | Ver a seção "Publicação". **A sessão imersiva a partir da URL pública ainda precisa ser validada num headset real.** |
+
+## Limitações conhecidas
+
+- Prova de conceito: painéis de equipamentos, elevador, conversa com NPCs e provador **ainda não funcionam dentro do VR** (aparece o aviso "… EM VR: NA ETAPA 5"). Fora do VR funcionam normalmente.
+- Não há tronco do boneco no VR (só as mãos) nem painel de opções em mundo; as opções são atalhos (Y, X, clique do stick direito) ou parâmetros de URL.
+- Desempenho do Hall no Quest abaixo de 72 fps em algumas vistas (escada, Incubadora, ACIOC).
+- Caminho Hall → Lab inexistente (falta referência do trajeto real).
+- Outros headsets e navegadores (Pico, Vision Pro, Chrome com headset no PC etc.) não foram testados.
+- Lista completa: [`docs/vr/ESTADO-E-PENDENCIAS.md`](docs/vr/ESTADO-E-PENDENCIAS.md).
+
+## Demonstração (roteiro rápido)
+
+1. No Quest, abra o **Quest Browser** em <https://millerinds.github.io/Orvalho-VR/> (HTTPS, exigido pelo WebXR).
+2. Monte o boneco (ou **Continuar**) e toque em **Entrar em VR**; aceite a permissão do navegador.
+3. Stick esquerdo anda, stick direito gira, gatilho usa o laser (porta do Lab → Hall, sentar), A pula, Y alterna andar suave/teleporte. **B segurado 1,5 s sai do VR.**
+4. Sem headset, a mesma URL mostra o jogo no modo desktop normal.
+
+## Como atualizar a versão VR
+
+1. Trabalhe numa branch a partir da `main` deste repositório, rode os testes (`GPU=1 npm run teste:vr`, `teste:navegacao`, `teste:avatar`) e abra um PR para a `main`.
+2. O merge na `main` publica sozinho (workflow `.github/workflows/pages.yml`, ~1 min).
+3. Para trazer mudanças do Orvalho tradicional: `git remote add tradicional https://github.com/millerinds/Orvalho.git`, `git fetch tradicional` e faça merge/cherry-pick numa branch, testando o VR antes do PR. O inverso (levar o VR para o tradicional) é decisão à parte; não empurre daqui para lá.
 
 ## Tecnologias
 
@@ -288,11 +334,11 @@ No Windows, aponte o Chromium do Playwright: `set CHROMIUM=%LOCALAPPDATA%\ms-pla
 
 Os testes cobrem o provador e dirigem o boneco pelo teclado pela sala inteira, medem corredores, conferem colisores, assentos, transições e, no Hall, sobem/descem a escada, testam guarda-corpos e restauram a altura salva. Os relatórios ficam em `testes/relatorio-*.json`. A suíte procura o Chromium do Playwright em `~/Library/Caches/ms-playwright`; em outro lugar, use `CHROMIUM=/caminho/do/chrome`.
 
-Para rodar a mesma suíte contra o site publicado: `ORVALHO_URL=https://millerinds.github.io/Orvalho/ npm run teste:tudo` (vale também para `teste:avatar`, `teste:hall` e `teste:primeiro`).
+Para rodar a mesma suíte contra o site publicado: `ORVALHO_URL=https://millerinds.github.io/Orvalho-VR/ npm run teste:tudo` (vale também para `teste:avatar`, `teste:hall` e `teste:primeiro`).
 
 ## Trabalho em equipe (Juan e Kalil)
 
-O repositório é `millerinds/Orvalho`; a branch principal é `main`. Cada mudança nasce numa branch própria e chega à `main` por pull request revisado.
+Este repositório é `millerinds/Orvalho-VR`; a branch principal é `main`. Cada mudança nasce numa branch própria e chega à `main` por pull request revisado.
 
 ```sh
 git switch main && git pull                 # começa sempre da main atualizada
@@ -310,7 +356,7 @@ gh pr create --fill                         # ou abra o PR pelo site do GitHub
 
 ## Publicação (GitHub Pages)
 
-`.github/workflows/pages.yml` roda a cada push na `main` (ou manualmente, na aba **Actions**). Ele copia só os arquivos do jogo (`index.html`, `css/`, `src/`, `ambientes/`, `vendor/`) para o site e publica no Pages. Leva cerca de 1 minuto. O andamento aparece em **Actions** e o endereço é <https://millerinds.github.io/Orvalho/>. Todos os caminhos são relativos, então o jogo funciona no subdiretório `/Orvalho/`. Não há backend: a persistência fica no navegador de cada visitante.
+`.github/workflows/pages.yml` roda a cada push na `main` (ou manualmente, na aba **Actions**). Ele copia só os arquivos do jogo (`index.html`, `css/`, `src/`, `ambientes/`, `vendor/`) para o site e publica no Pages. Leva cerca de 1 minuto. O andamento aparece em **Actions** e o endereço é <https://millerinds.github.io/Orvalho-VR/>. Todos os caminhos são relativos, então o jogo funciona no subdiretório `/Orvalho-VR/`. Não há build: o site é a cópia dos arquivos. O Pages deste repositório usa a fonte **GitHub Actions** (Settings → Pages) e é independente do Pages do `Orvalho`. O GitHub Pages serve por HTTPS, que o WebXR exige. Não há backend: a persistência fica no navegador de cada visitante.
 
 ## Como criar outro ambiente
 

@@ -10,6 +10,10 @@ Antes de alterar código, leia integralmente:
 
 Depois leia `README.md`, `docs/DECISOES.md` e `docs/REGRAS-orvalho.md`.
 
+Para o modo VR, leia também `docs/vr/LEIA-ME-VR.md` e os demais arquivos de `docs/vr/`.
+
+Publicação: este é o repositório `millerinds/Orvalho-VR` (versão VR), branch `main`, GitHub Pages por Actions em <https://millerinds.github.io/Orvalho-VR/>. Ele é independente do `millerinds/Orvalho` (versão tradicional): não envie nada daqui para lá sem decisão explícita.
+
 Regras essenciais:
 
 - Preserve three.js r149, o Avatar Kit, o provador e a estética Frutiger Aero.
