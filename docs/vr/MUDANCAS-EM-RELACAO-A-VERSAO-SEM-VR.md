@@ -19,7 +19,9 @@ Sem WebXR no navegador, os botões de VR nem aparecem.
 | `src/mundo/jogo.js` | `renderer.xr.enabled = true`; `setAnimationLoop` no lugar de `requestAnimationFrame`; `parar()` não para o desenho em VR; ramo VR no laço (a cabeça move o jogador); teclado, mouse e `visibilitychange` ignorados em VR; `size()` não faz nada durante a sessão (a r149 recusa `setSize` em VR); API `O.jogo.vr = { contexto, ligar, desligar, ativo, irPara }` | ligar o jogo à sessão sem duplicar lógica: colisão, piso, portas, NPCs e save continuam os do desktop; `irPara` troca de ambiente dentro da sessão | sem sessão, o laço é o mesmo |
 | `src/mundo/sala.js` | **células de 8 m** com geometria-invólucro e recorte (`celulas`, `involucro`, `esferaDasInstancias`); ferragens de cada porta numa malha (`porta-ferragem`); **zonas de visibilidade** (`zonaEm`, grupos, visibilidade parcial); `modoVR(on)` (vidros numa passada) e `visibilidadeVR(cabeça, opções)` (contornos, zonas, distância); `zonaVR()`; `paradasEscada(x, z)` | o Hall tinha ~1.000 draws em qualquer direção; as células e as zonas cortam o que não se vê; as paradas servem ao teleporte na escada | as células valem no desktop (imagem igual); o resto só em VR |
 | `ambientes/hall-inovale/hall-inovale.js` | `zonasVR`: zonas (escada, café, térreo, ACIOC, salas, Administrativo, corredor da Incubadora, Incubadora, corredor) e a tabela `ve` calculada por geometria | dados das zonas do Hall | nenhum |
-| `src/mundo/interacao.js`, `camera.js`, `colisao.js`, `npcs.js`, `elevador.js`, `src/boneco/*`, `src/ui/provador.js` | **não mudaram** | o VR usa as APIs existentes (por exemplo `colisao.raio`, `alturaPiso`, os interativos e os braços do boneco) | — |
+| `src/mundo/elevador.js` | (09/11/2026) a sequência da viagem virou `O.elevador.viajar(atual, destino, h)`, usada pelo painel DOM e pelo painel VR, com os mesmos tempos; `O.elevador.nome(piso)` | um elevador só, dois painéis | o mesmo comportamento (`teste:primeiro` e Hall) |
+| `src/mundo/jogo.js` (09/11/2026) | `saidaElevador(piso)` única (desktop e VR); `salvar()` usa `vr.pontoSeguro()` para nunca salvar dentro da cabine; `O.jogo.vr.saidaElevador` | o VR põe o jogador dentro da cabine | sem VR, igual |
+| `src/mundo/interacao.js`, `camera.js`, `colisao.js`, `npcs.js`, `src/boneco/*`, `src/ui/provador.js` | **não mudaram** | o VR usa as APIs existentes (por exemplo `colisao.raio`, `alturaPiso`, os interativos e os braços do boneco) | — |
 
 ## Arquivos novos do jogo (`src/xr/`)
 
@@ -36,6 +38,7 @@ Sem WebXR no navegador, os botões de VR nem aparecem.
 | `maos.js` | Mãos: os braços de gelatina do boneco presos ao `targetRaySpace` de cada controle |
 | `raio.js` | Laser, alvos com tolerância angular, rótulo, gatilho, sentar e levantar, troca de ambiente |
 | `teste.js` | Modo teste: registros por POST, setores de direção, marcas, bipes, giro automático, baterias |
+| `elevador.js` | (09/11/2026) Elevador em VR: chamar, entrar, painel em mundo (canvas Aero, botões grandes que acendem em foco), viagem por `O.elevador.viajar` com véu, Lab ↔ Hall pela cabine, sair por botão, B ou stick; ponto seguro ao salvar e ao sair do VR |
 | `sessao.js` | Sessão WebXR: detecção, entrada, reference space, 72 Hz, framebuffer e foveação; liga tudo ao jogo; B segurado sai; restaura o desktop ao sair |
 
 ## Ferramentas de desenvolvimento e testes (nada disso vai para o site)

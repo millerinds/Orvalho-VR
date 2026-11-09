@@ -11,11 +11,12 @@
     "teste:navegacao:esguio": "node testes/navegacao.js --corpo=esguio",
     "teste:hall": "node testes/navegacao.js --ambiente=hall-inovale",
     "teste:primeiro": "node testes/primeiro-andar.js",
-    "teste:vr": "node testes/vr.js && node testes/vr-locomocao.js",
+    "teste:vr": "node testes/vr.js && node testes/vr-locomocao.js && node testes/vr-elevador.js",
+    "teste:vr:elevador": "node testes/vr-elevador.js",
     "teste:vr:locomocao": "node testes/vr-locomocao.js",
     "medir:vr": "node testes/medir-vr.js",
     "medicoes:vr": "node testes/resumir-medicoes-vr.js",
-    "teste:tudo": "node testes/fluxo-avatar.js && node testes/navegacao.js && node testes/navegacao.js --corpo=gota && node testes/navegacao.js --corpo=esguio && node testes/navegacao.js --ambiente=hall-inovale && node testes/navegacao.js --ambiente=hall-inovale --corpo=gota && node testes/navegacao.js --ambiente=hall-inovale --corpo=esguio && node testes/vr.js && node testes/vr-locomocao.js"
+    "teste:tudo": "node testes/fluxo-avatar.js && node testes/navegacao.js && node testes/navegacao.js --corpo=gota && node testes/navegacao.js --corpo=esguio && node testes/navegacao.js --ambiente=hall-inovale && node testes/navegacao.js --ambiente=hall-inovale --corpo=gota && node testes/navegacao.js --ambiente=hall-inovale --corpo=esguio && node testes/vr.js && node testes/vr-locomocao.js && node testes/vr-elevador.js"
   },
   "devDependencies": {
     "iwer": "2.7.0",

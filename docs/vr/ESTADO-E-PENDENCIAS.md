@@ -16,11 +16,12 @@ Situação: **prova de conceito fechada.** Locomoção, laser, sentar e troca La
 | 3a. Mãos de gelatina nos controles | feita | sim |
 | 4a. Laser, alvos, gatilho, sentar e levantar, troca Lab → Hall | feita | sim |
 | Atalhos Y (suave/teleporte), X (vinheta) e clique do stick direito (giro) | feitos | Y e clique sim; o X é novo |
+| 5b. Elevador em VR (09/11/2026): chamar, entrar, painel em mundo, viagem com véu, Lab ↔ Hall pelo elevador, 1º andar | feita (`src/xr/elevador.js`, `testes/vr-elevador.js`) | **não** (só no emulador) |
 
 ## Falta fazer
 1. **Painéis em mundo (etapa 5).** É um kit de painel em canvas 2D com o visual Aero (borda grossa, sombra dura, brilho de gota), clicável pelo laser. Hoje equipamentos, pessoas e elevador só mostram um aviso ("… EM VR: NA ETAPA 5"). Ordem combinada:
    1. painéis dos equipamentos;
-   2. elevador (painel de andares e viagem com véu, sem `parar()`);
+   2. ~~elevador~~: feito em 09/11/2026 (veja a tabela acima). O painel do elevador é próprio (`src/xr/elevador.js`); quando o kit de painel existir, vale migrar;
    3. diálogo com NPC (painel ao lado da pessoa, sem enquadrar a câmera);
    4. provador em VR: um 2º boneco num palco na cena principal (a vitrine usa outro `WebGLRenderer`, que não aparece no headset). O grip gira o boneco. As miniaturas SVG precisam das cores aplicadas no lugar de `var(--c1)`.
 2. **Tronco e "ocultar corpo" (etapa 3b).** Ainda falta decidir:
@@ -31,7 +32,7 @@ Situação: **prova de conceito fechada.** Locomoção, laser, sentar e troca La
    - movimento, giro, vinheta, postura, altura dos olhos sentado, velocidades, pulo, mão dominante e ocultar corpo;
    - botões "Recentralizar" e "Sair do VR";
    - ele substitui os atalhos temporários (Y, X, clique do stick direito).
-4. **Caminho Hall → Lab.** Hoje só existe Lab → Hall (a porta do Lab). O Hall não tem caminho de volta ao Lab nem no desktop: a ligação pelo elevador foi removida, e o trajeto real até o Lab não foi documentado. Precisa de referência (planta ou fotos) antes de modelar.
+4. **Caminho Hall → Lab.** Em VR, ida e volta são pelo elevador ("Lab IA" no painel, sem pavimento). No desktop, só existe Lab → Hall (a porta do Lab). O Hall não tem caminho de volta ao Lab nem no desktop: a ligação pelo elevador foi removida, e o trajeto real até o Lab não foi documentado. Precisa de referência (planta ou fotos) antes de modelar.
 5. **Desempenho (estacionado; veja `GUIA-DE-MODELAGEM-E-OTIMIZACAO.md`):**
    - compartilhar materiais iguais da estrutura (estimativa de −130 a −160 draws nas piores vistas);
    - decidir a distância do térreo visto do 1º andar (as mesas somem ao olhar o Hall da Incubadora; opções medidas em `MEDICOES-RESUMO.md`);
@@ -41,6 +42,7 @@ Situação: **prova de conceito fechada.** Locomoção, laser, sentar e troca La
 
 ## Falta testar
 - **No Quest:**
+  - o elevador inteiro: legibilidade do painel, tamanho dos botões com o laser real, conforto do véu na viagem e ao entrar/sair, se a parede direita é fácil de achar ao entrar na cabine;
   - a tabela de zonas nova (visibilidade parcial): confirmar que nada "pula";
   - as paradas da escada no teleporte (subir e descer);
   - o atalho X da vinheta e o véu preto;

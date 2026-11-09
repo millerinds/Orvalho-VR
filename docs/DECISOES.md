@@ -174,3 +174,11 @@ Registro das escolhas feitas na primeira versão jogável (30/10/2026), com o mo
 - **Sentar em VR:** trava a posição (rig fixo, sem colisão). Na postura "em pé", baixa a vista até 0,72 m acima do assento; na postura "sentado", só trava. Levanta com B curto ou com o stick.
 - **Troca de ambiente em VR** sem sair da sessão (`O.jogo.vr.irPara`). Hoje só existe a ligação Lab → Hall.
 - **Mesas da Incubadora que somem:** medidas, não aplicadas. A recomendação é compartilhar os materiais da estrutura e depois aumentar a distância só para o térreo visto do 1º andar.
+
+## 09/11/2026 · VR: elevador funcional
+
+- **Um elevador só.** Portas e cabine continuam as de `O.elevador.criar3D`; a sequência da viagem (fechar, visor, mover, abrir) foi extraída para `O.elevador.viajar`, usada pelo painel DOM (desktop) e pelo painel em mundo (VR), com os mesmos tempos.
+- **Cabine fora da colisão.** A parede do vão do elevador colide inteira; em vez de abrir a colisão do Hall, entrar na cabine é um véu e a posição fica travada (rig fixo + locomoção travada), como ao sentar. Sair: botão, B curto ou stick (com as portas abertas), para a mesma saída do desktop diante das portas.
+- **Sem movimento vertical.** Entre pavimentos: portas fecham, visor e texto, véu curto e as portas do destino abrem. A direção do olhar é mantida (sem recentralizar).
+- **Lab pelo elevador, sem pavimento.** Não há foto nem planta de um elevador no Lab, então nada foi modelado lá: a porta do Lab leva à cabine do Hall (visor "Lab"), e o painel VR tem "Lab IA" sem número de andar. Ligação provisória até haver referência do trajeto real. 2º e 3º andares seguem indisponíveis.
+- **Nunca preso na cabine.** O ponto salvo e a saída do VR usam a posição diante das portas.
